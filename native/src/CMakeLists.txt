@@ -213,6 +213,13 @@ endif()
 
 # Determine the target output directory.
 SET_CEF_TARGET_OUT_DIR()
+# SET_CEF_TARGET_OUT_DIR() itself overwrites CMAKE_RUNTIME_OUTPUT_DIRECTORY /
+# CMAKE_LIBRARY_OUTPUT_DIRECTORY for Makefiles/Ninja generators, so redirecting
+# CEF_TARGET_OUT_DIR alone is not enough - both must be set here, after the
+# macro call, to actually take effect for add_library/add_executable below.
+set(CEF_TARGET_OUT_DIR "${CMAKE_BINARY_DIR}/Release/${NATIVES_CLASSIFIER}")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CEF_TARGET_OUT_DIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CEF_TARGET_OUT_DIR})
 
 
 #

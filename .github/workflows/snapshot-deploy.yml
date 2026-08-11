@@ -1,171 +1,54 @@
 name: Snapshot Deploy
-
 on:
   push:
     branches: [ main ]
-
 jobs:
-  build-linux:
+  build-native-linux:
     runs-on: ubuntu-22.04
-    permissions:
-      contents: read
-      packages: write
     steps:
       - uses: actions/checkout@v4
-
       - name: Build native code (Linux)
         run: |
           cd native && mkdir build && cd build
           cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release ..
           make -j4
-
-      - name: Set up Java 25
-        uses: actions/setup-java@v4
+      - name: Upload native artifact
+        uses: actions/upload-artifact@v4
         with:
-          java-version: '25'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Generate settings.xml
-        run: |
-          cat > ~/.m2/settings.xml << EOF
-          <settings>
-            <servers>
-              <server>
-                <id>repsy-snapshots</id>
-                <username>${{ secrets.REPSY_USERNAME }}</username>
-                <password>${{ secrets.REPSY_PASSWORD }}</password>
-              </server>
-            </servers>
-          </settings>
-          EOF
-
-      - name: Build and deploy
-        run: |
-          cd java
-          set -x
-          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
-          echo "Detected version: $VERSION"
-          if [[ $VERSION == *"SNAPSHOT"* ]]; then
-            echo "Deploying snapshot version: $VERSION"
-            mvn deploy -U -B
-          else
-            echo "Skipping deploy for release version: $VERSION"
-            mvn install
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  build-macos-x86:
+          name: natives-linux
+          path: native/build/Release/linux
+  build-native-mac:
     runs-on: macos-15-intel
-    permissions:
-      contents: read
-      packages: write
     steps:
       - uses: actions/checkout@v4
-
       - name: Build native code (macOS x86_64)
         run: |
           cd native && mkdir build && cd build
           cmake -G "Xcode" -DPROJECT_ARCH="x86_64" ..
           xcodebuild -project ceffx.xcodeproj -configuration Release
-
-      - name: Set up Java 25
-        uses: actions/setup-java@v4
+      - name: Upload native artifact
+        uses: actions/upload-artifact@v4
         with:
-          java-version: '25'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Generate settings.xml
-        run: |
-          cat > ~/.m2/settings.xml << EOF
-          <settings>
-            <servers>
-              <server>
-                <id>repsy-snapshots</id>
-                <username>${{ secrets.REPSY_USERNAME }}</username>
-                <password>${{ secrets.REPSY_PASSWORD }}</password>
-              </server>
-            </servers>
-          </settings>
-          EOF
-
-      - name: Build and deploy
-        run: |
-          cd java
-          set -x
-          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
-          echo "Detected version: $VERSION"
-          if [[ $VERSION == *"SNAPSHOT"* ]]; then
-            echo "Deploying snapshot version: $VERSION"
-            mvn deploy -U -B
-          else
-            echo "Skipping deploy for release version: $VERSION"
-            mvn install
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  build-macos-arm64:
+          name: natives-mac
+          path: native/build/Release/mac
+  build-native-mac-aarch64:
     runs-on: macos-15
-    permissions:
-      contents: read
-      packages: write
     steps:
       - uses: actions/checkout@v4
-
       - name: Build native code (macOS arm64)
         run: |
           cd native && mkdir build && cd build
           cmake -G "Xcode" -DPROJECT_ARCH="arm64" ..
           xcodebuild -project ceffx.xcodeproj -configuration Release
-
-      - name: Set up Java 25
-        uses: actions/setup-java@v4
+      - name: Upload native artifact
+        uses: actions/upload-artifact@v4
         with:
-          java-version: '25'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Generate settings.xml
-        run: |
-          cat > ~/.m2/settings.xml << EOF
-          <settings>
-            <servers>
-              <server>
-                <id>repsy-snapshots</id>
-                <username>${{ secrets.REPSY_USERNAME }}</username>
-                <password>${{ secrets.REPSY_PASSWORD }}</password>
-              </server>
-            </servers>
-          </settings>
-          EOF
-
-      - name: Build and deploy
-        run: |
-          cd java
-          set -x
-          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
-          echo "Detected version: $VERSION"
-          if [[ $VERSION == *"SNAPSHOT"* ]]; then
-            echo "Deploying snapshot version: $VERSION"
-            mvn deploy -U -B
-          else
-            echo "Skipping deploy for release version: $VERSION"
-            mvn install
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  build-windows:
+          name: natives-mac-aarch64
+          path: native/build/Release/mac-aarch64
+  build-native-windows:
     runs-on: windows-2022
-    permissions:
-      contents: read
-      packages: write
     steps:
       - uses: actions/checkout@v4
-
       - name: Build native code (Windows)
         run: |
           cd native
@@ -173,18 +56,49 @@ jobs:
           cd build
           cmake -G "Visual Studio 17" -A x64 ..
           cmake --build . --config Release
-
+        shell: pwsh
+      - name: Upload native artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: natives-windows
+          path: native/build/Release/win
+  build-and-deploy:
+    needs: [ build-native-linux, build-native-mac, build-native-mac-aarch64, build-native-windows ]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download Linux natives
+        uses: actions/download-artifact@v4
+        with:
+          name: natives-linux
+          path: native/build/Release/linux
+      - name: Download mac natives
+        uses: actions/download-artifact@v4
+        with:
+          name: natives-mac
+          path: native/build/Release/mac
+      - name: Download mac-aarch64 natives
+        uses: actions/download-artifact@v4
+        with:
+          name: natives-mac-aarch64
+          path: native/build/Release/mac-aarch64
+      - name: Download Windows natives
+        uses: actions/download-artifact@v4
+        with:
+          name: natives-windows
+          path: native/build/Release/win
       - name: Set up Java 25
         uses: actions/setup-java@v4
         with:
           java-version: '25'
           distribution: 'temurin'
           cache: 'maven'
-
       - name: Generate settings.xml
-        shell: pwsh
         run: |
-          $xml = @"
+          cat > ~/.m2/settings.xml << EOF
           <settings>
             <servers>
               <server>
@@ -194,22 +108,23 @@ jobs:
               </server>
             </servers>
           </settings>
-          "@
-          New-Item -ItemType Directory -Force -Path "$HOME/.m2"
-          $xml | Set-Content "$HOME/.m2/settings.xml"
-
+          EOF
+      - name: Import GPG key
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        run: echo "$GPG_PRIVATE_KEY" | gpg --batch --import
       - name: Build and deploy
-        shell: pwsh
+        env:
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
           cd java
-          $VERSION = mvn help:evaluate -Dexpression=project.version -q -DforceStdout
-          Write-Host "Detected version: $VERSION"
-          if ($VERSION -like "*SNAPSHOT*") {
-            Write-Host "Deploying snapshot version: $VERSION"
-            mvn deploy -U -B
-          } else {
-            Write-Host "Skipping deploy for release version: $VERSION"
+          set -x
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "Detected version: $VERSION"
+          if [[ $VERSION == *"SNAPSHOT"* ]]; then
+            echo "Deploying snapshot version: $VERSION"
+            mvn deploy -P snapshot,linux,mac,mac-aarch64,windows -U -B -Dgpg.passphrase="$GPG_PASSPHRASE"
+          else
+            echo "Skipping deploy for release version: $VERSION"
             mvn install
-          }
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          fi

@@ -166,7 +166,7 @@
                     <mainClass>com.techsenger.ceffx.demo.Demo</mainClass>
                     <options>
                         <option>-Xrunjdwp:transport=dt_socket,address=7700,server=y,suspend=n</option>
-                        <option>-Djava.library.path=${basedir}/../../native/build/src/Release/</option>
+                        <option>-Djava.library.path=${basedir}/../../native/build/Release/${natives.classifier}</option>
                         <option>--enable-native-access=javafx.graphics</option>
                         <option>--enable-native-access=com.techsenger.ceffx.core</option>
                         <option>-Djavafx.enablePreview=true</option>

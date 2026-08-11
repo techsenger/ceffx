@@ -298,6 +298,24 @@ endif()
 #
 # Include target subdirectories.
 #
+# Determine the classifier used to name the native output directory, matching
+# the Maven classifiers used by the ceffx-natives module (linux, mac,
+# mac-aarch64, win).
+if(OS_LINUX)
+  set(NATIVES_CLASSIFIER "linux")
+elseif(OS_MAC)
+  if("${PROJECT_ARCH}" STREQUAL "arm64")
+    set(NATIVES_CLASSIFIER "mac-aarch64")
+  else()
+    set(NATIVES_CLASSIFIER "mac")
+  endif()
+elseif(OS_WINDOWS)
+  set(NATIVES_CLASSIFIER "win")
+endif()
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/Release/${NATIVES_CLASSIFIER})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/Release/${NATIVES_CLASSIFIER})
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/Release/${NATIVES_CLASSIFIER})
 
 add_subdirectory(${CEF_LIBCEF_DLL_WRAPPER_PATH} libcef_dll_wrapper)
 add_subdirectory(src)
