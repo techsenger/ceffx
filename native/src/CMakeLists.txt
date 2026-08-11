@@ -217,9 +217,19 @@ SET_CEF_TARGET_OUT_DIR()
 # CMAKE_LIBRARY_OUTPUT_DIRECTORY for Makefiles/Ninja generators, so redirecting
 # CEF_TARGET_OUT_DIR alone is not enough - both must be set here, after the
 # macro call, to actually take effect for add_library/add_executable below.
+# Multi-config generators (Xcode, Visual Studio) auto-append a /<CONFIG>
+# subfolder to the plain (non-per-config) variable, so the *_DEBUG/*_RELEASE
+# variants must be set explicitly too, or binaries end up one level deeper
+# than CEF_TARGET_OUT_DIR (e.g. .../win/Release/ceffx_helper.exe instead of
+# .../win/ceffx_helper.exe), breaking every custom command that references
+# CEF_TARGET_OUT_DIR directly (manifest embedding, bundle copying, etc.).
 set(CEF_TARGET_OUT_DIR "${CMAKE_BINARY_DIR}/Release/${NATIVES_CLASSIFIER}")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CEF_TARGET_OUT_DIR})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CEF_TARGET_OUT_DIR})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CEF_TARGET_OUT_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CEF_TARGET_OUT_DIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CEF_TARGET_OUT_DIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CEF_TARGET_OUT_DIR})
 
 
 #
