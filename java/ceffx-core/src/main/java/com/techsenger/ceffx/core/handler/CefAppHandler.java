@@ -65,11 +65,12 @@ public interface CefAppHandler {
     /**
      * Called from any thread when work has been scheduled for the browser process
      * main (UI) thread. This callback should schedule a
-     * CefApp.DoMessageLoopWork() call to happen on the main (UI) thread.
-     * |delay_ms| is the requested delay in milliseconds. If |delay_ms| is <= 0
-     * then the call should happen reasonably soon. If |delay_ms| is > 0 then the
-     * call should be scheduled to happen after the specified delay and any
-     * currently pending scheduled call should be cancelled.
+     * {@code CefApp.DoMessageLoopWork()} call to happen on the main (UI) thread.
+     * {@code delay_ms} is the requested delay in milliseconds. If {@code delay_ms}
+     * is less than or equal to 0, then the call should happen reasonably soon.
+     * If {@code delay_ms} is greater than 0, then the call should be scheduled
+     * to happen after the specified delay and any currently pending scheduled
+     * call should be cancelled.
      */
     public void onScheduleMessagePumpWork(long delay_ms);
 

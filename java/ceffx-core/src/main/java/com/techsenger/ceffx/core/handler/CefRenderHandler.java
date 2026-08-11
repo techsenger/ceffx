@@ -116,7 +116,7 @@ public interface CefRenderHandler {
 
     /**
      * Called when the web view wants to update the mouse cursor during a
-     * drag & drop operation.
+     * drag-and-drop operation.
      *
      * @param browser The browser generating the event.
      * @param operation Describes the allowed operation (none, move, copy, link).

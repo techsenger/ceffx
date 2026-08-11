@@ -11,7 +11,6 @@ import com.techsenger.ceffx.core.misc.BoolRef;
 import com.techsenger.ceffx.core.misc.IntRef;
 import com.techsenger.ceffx.core.misc.LongRef;
 import com.techsenger.ceffx.core.misc.StringRef;
-import com.techsenger.ceffx.core.network.CefCookie;
 import com.techsenger.ceffx.core.network.CefRequest;
 import com.techsenger.ceffx.core.network.CefResponse;
 
@@ -77,7 +76,7 @@ public interface CefResourceHandler {
      * |dataOut|, set |bytesRead| to the number of bytes copied, and return true. To read the data
      * at a later time store |dataOut|, set |bytesRead| to 0, return true and call the callback when
      * the data is available. To indicate response completion set |bytesRead| to 0 and return false.
-     * To indicate failure set |bytesRead| to <0 (e.g. -2 for ERR_FAILED) and return false. <p> For
+     * To indicate failure set |bytesRead| to &lt;0 (e.g. -2 for ERR_FAILED) and return false. <p> For
      * backwards compatibility set |bytesRead| to -1 and return false and the readResponse() method
      * will be called.
      * @param dataOut Write data to this buffer. Buffer remains valid until either an immediate
@@ -96,7 +95,7 @@ public interface CefResourceHandler {
      * bytes of response data. If data is available immediately set |bytesSkipped| to the number of
      * bytes skipped and return true. To read the data at a later time set |bytesSkipped| to 0,
      * return true and execute |callback| when the data is available. To indicate failure set
-     * |bytesSkipped| to < 0 (e.g. -2 for ERR_FAILED) and return false.
+     * |bytesSkipped| to &lt; 0 (e.g. -2 for ERR_FAILED) and return false.
      * @param bytesToSkip Number of bytes to skip.
      * @param bytesSkipped Number of bytes skipped.
      * @param callback Callback to execute if data will be skipped asynchronously.

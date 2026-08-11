@@ -7,7 +7,6 @@ package com.techsenger.ceffx.core.handler;
 import com.techsenger.ceffx.core.browser.CefBrowser;
 import com.techsenger.ceffx.core.browser.CefMessageRouter;
 import com.techsenger.ceffx.core.callback.CefNative;
-
 import java.util.HashMap;
 import java.util.Vector;
 
@@ -58,7 +57,7 @@ public abstract class CefClientHandler implements CefNative {
 
     /**
      * Returns the java part of the browser implementation.
-     * @param identifer the unique identifier of the browser.
+     * @param identifier the unique identifier of the browser.
      * @return The found browser or null if none is found.
      */
     abstract protected CefBrowser getBrowser(int identifier);

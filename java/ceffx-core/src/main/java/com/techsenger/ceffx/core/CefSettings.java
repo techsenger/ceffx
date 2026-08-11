@@ -116,7 +116,6 @@ public class CefSettings {
      * external_message_pump simultaneously, as this will cause undefined behavior.
      *
      * @see #multi_threaded_message_loop
-     * @see #doMessageLoopWork()
      */
     public boolean external_message_pump = false;
 
