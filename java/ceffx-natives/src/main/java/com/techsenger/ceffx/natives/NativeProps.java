@@ -51,12 +51,12 @@ public final class NativeProps {
     /**
      * Direct download link for the standard CEF distribution archive matching {@link #CEF_DISTRIBUTION}.
      */
-    public static final String CEF_URL;
+    public static final String CEF_DOWNLOAD_URL;
 
     /**
      * Direct download link for the minimal CEF distribution archive matching {@link #CEF_DISTRIBUTION}.
      */
-    public static final String CEF_URL_MINIMAL;
+    public static final String CEF_DOWNLOAD_URL_MIN;
 
     /**
      * The Maven classifier of this jar, for example {@code linux}, {@code mac}, {@code mac-aarch64} or {@code win}.
@@ -79,8 +79,8 @@ public final class NativeProps {
         CEF_DISTRIBUTION = requireProperty(properties, "cef.distribution");
         CEFFX_CLASSIFIER = requireProperty(properties, "ceffx.classifier");
         var encodedDistribution = urlEncodeDistribution(CEF_DISTRIBUTION);
-        CEF_URL = CEF_BASE_URL + encodedDistribution + ".tar.bz2";
-        CEF_URL_MINIMAL = CEF_BASE_URL + encodedDistribution + "_minimal.tar.bz2";
+        CEF_DOWNLOAD_URL = CEF_BASE_URL + encodedDistribution + ".tar.bz2";
+        CEF_DOWNLOAD_URL_MIN = CEF_BASE_URL + encodedDistribution + "_minimal.tar.bz2";
     }
 
     private static String requireProperty(Properties properties, String key) {
