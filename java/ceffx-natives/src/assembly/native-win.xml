@@ -11,7 +11,7 @@
             <directory>${project.build.outputDirectory}</directory>
             <outputDirectory>/</outputDirectory>
             <excludes>
-                <exclude>com/techsenger/ceffx/natives/**</exclude>
+                <exclude>com/techsenger/ceffx/natives/*.properties</exclude>
             </excludes>
         </fileSet>
         <fileSet>
