@@ -15,6 +15,22 @@
         <plugins>
             <plugin>
                 <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>default-jar</id>
+                        <!--
+                            Moved from the default "package" phase to "verify". By default this execution runs in the
+                            same "package" phase as attach-javadocs (maven-javadoc-plugin), and on JDK 25 packaging
+                            module-info.class here triggers maven-jar-plugin to invoke the external "jar" tool to
+                            finalize a modular JAR - which then causes the subsequent attach-javadocs execution to fail
+                            with "No source files for package" even though the source files are present. Moving this
+                            execution to "verify" (right after "package") avoids that interaction: javadoc now
+                            always runs first. Since this JAR intentionally contains no code nothing else in the build
+                            depends on it being ready during "package".
+                        -->
+                        <phase>verify</phase>
+                    </execution>
+                </executions>
                 <configuration>
                     <includes>
                         <!-- The JAR without a classifier contains no code -->
