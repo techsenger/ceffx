@@ -181,9 +181,9 @@ As a rule of thumb, if something does not work as expected, it is recommended to
 CEFFX provides prebuilt native libraries, making it easy to integrate CEF into any JavaFX application without the need
 to compile it from source. This section describes all the steps required to set it up.
 
-1. Download the minimal CEF distribution from [CEF](https://cef-builds.spotifycdn.com/index.html) version
-`146.0.10+g8219561+chromium-146.0.7680.179`. Use the `Version Filter` to locate the correct version. Please note that
-other versions will not work, as CEFFX includes a built-in version check.
+1. Download the minimal CEF distribution for the `cef.version` specified in `cef.properties` from
+[CEF](https://cef-builds.spotifycdn.com/index.html).. Use the `Version Filter` to locate the correct version. Please
+note that other versions will not work, as CEFFX includes a built-in version check.
 2. Create a directory on your system, for example: `/foo/cef`.
 3. Copy the `contents` of the `Release` folder from the archive into `/foo/cef`.
 4. Copy the `contents` of the `Resources` folder from the archive into `/foo/cef`.

@@ -129,7 +129,16 @@ set_property(GLOBAL PROPERTY OS_FOLDERS ON)
 
 # Specify the CEF distribution version.
 if(NOT DEFINED CEF_VERSION)
-  set(CEF_VERSION "146.0.10+g8219561+chromium-146.0.7680.179")
+  set(CEF_PROPERTIES_FILE "${CMAKE_SOURCE_DIR}/../cef.properties")
+  if(NOT EXISTS "${CEF_PROPERTIES_FILE}")
+    message(FATAL_ERROR "cef.properties not found at ${CEF_PROPERTIES_FILE}")
+  endif()
+  file(STRINGS "${CEF_PROPERTIES_FILE}" CEF_VERSION_LINE REGEX "^cef\\.version=")
+  if(NOT CEF_VERSION_LINE)
+    message(FATAL_ERROR "cef.version property not found in ${CEF_PROPERTIES_FILE}")
+  endif()
+  string(REGEX REPLACE "^cef\\.version=" "" CEF_VERSION "${CEF_VERSION_LINE}")
+  message(STATUS "Read CEF_VERSION from cef.properties: ${CEF_VERSION}")
 endif()
 
 # Determine the platform.

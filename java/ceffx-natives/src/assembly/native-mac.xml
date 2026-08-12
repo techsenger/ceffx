@@ -10,6 +10,9 @@
         <fileSet>
             <directory>${project.build.outputDirectory}</directory>
             <outputDirectory>/</outputDirectory>
+            <excludes>
+                <exclude>com/techsenger/ceffx/natives/**</exclude>
+            </excludes>
         </fileSet>
         <fileSet>
             <directory>${basedir}/../../native/build/Release/mac</directory>
@@ -20,4 +23,11 @@
             </includes>
         </fileSet>
     </fileSets>
+    <files>
+        <file>
+            <source>${project.build.outputDirectory}/com/techsenger/ceffx/natives/native-mac.properties</source>
+            <outputDirectory>com/techsenger/ceffx/natives</outputDirectory>
+            <destName>native.properties</destName>
+        </file>
+    </files>
 </assembly>
