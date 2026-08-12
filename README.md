@@ -182,7 +182,7 @@ CEFFX provides prebuilt native libraries, making it easy to integrate CEF into a
 to compile it from source. This section describes all the steps required to set it up.
 
 1. Download the minimal CEF distribution for the `cef.version` specified in `cef.properties` from
-[CEF](https://cef-builds.spotifycdn.com/index.html).. Use the `Version Filter` to locate the correct version. Please
+[CEF](https://cef-builds.spotifycdn.com/index.html). Use the `Version Filter` to locate the correct version. Please
 note that other versions will not work, as CEFFX includes a built-in version check.
 2. Create a directory on your system, for example: `/foo/cef`.
 3. Copy the `contents` of the `Release` folder from the archive into `/foo/cef`.
