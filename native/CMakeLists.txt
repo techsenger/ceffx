@@ -133,12 +133,21 @@ if(NOT DEFINED CEF_VERSION)
   if(NOT EXISTS "${CEF_PROPERTIES_FILE}")
     message(FATAL_ERROR "cef.properties not found at ${CEF_PROPERTIES_FILE}")
   endif()
+
   file(STRINGS "${CEF_PROPERTIES_FILE}" CEF_VERSION_LINE REGEX "^cef\\.version=")
   if(NOT CEF_VERSION_LINE)
     message(FATAL_ERROR "cef.version property not found in ${CEF_PROPERTIES_FILE}")
   endif()
   string(REGEX REPLACE "^cef\\.version=" "" CEF_VERSION "${CEF_VERSION_LINE}")
+
+  file(STRINGS "${CEF_PROPERTIES_FILE}" CEF_BASEURL_LINE REGEX "^cef\\.baseUrl=")
+  if(NOT CEF_BASEURL_LINE)
+    message(FATAL_ERROR "cef.baseUrl property not found in ${CEF_PROPERTIES_FILE}")
+  endif()
+  string(REGEX REPLACE "^cef\\.baseUrl=" "" CEF_BASE_URL "${CEF_BASEURL_LINE}")
+
   message(STATUS "Read CEF_VERSION from cef.properties: ${CEF_VERSION}")
+  message(STATUS "Read CEF_BASE_URL from cef.properties: ${CEF_BASE_URL}")
 endif()
 
 # Determine the platform.
