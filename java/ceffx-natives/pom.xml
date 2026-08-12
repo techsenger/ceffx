@@ -11,6 +11,7 @@
     <packaging>jar</packaging>
     <name>CEFFX - Natives</name>
     <description>Native libraries module</description>
+
     <build>
         <plugins>
             <plugin>
@@ -41,14 +42,19 @@
         </plugins>
     </build>
     <!--
-        Each profile below activates by default only for its matching OS, so a local
-        "mvn install" on a single machine builds only that machine's classifier jar,
-        without requiring the other platforms' native binaries to be present.
+        Each profile below activates by default only for its matching OS, so a local "mvn install" on a single machine
+        builds only that machine's classifier jar, without requiring the other platforms' native binaries to be present.
+        In CI, all four are force-activated together in a single invocation via "-P linux,mac,mac-aarch64,windows"
+        (activation conditions are ignored when a profile is requested explicitly), so all four classifier jars are
+        produced and deployed with one shared snapshot timestamp.
 
-        In CI, all four are force-activated together in a single invocation via
-        "-P linux,mac,mac-aarch64,windows" (activation conditions are ignored when a
-        profile is requested explicitly), so all four classifier jars are produced and
-        deployed with one shared snapshot timestamp.
+        Each profile references its own fixed native-<classifier>.xml assembly descriptor (id and source directory
+        hardcoded), rather than a single shared descriptor driven by a natives.classifier property. Maven properties are
+        resolved once per build session, not per profile/execution - when multiple profiles are active together (as in
+        CI above), a property with the same key declared in each profile collapses to a single value for the whole
+        build, not a different value per execution. A shared property-driven descriptor would make all four assembly
+        executions resolve to the same classifier instead of four different ones, so the per-classifier values must be
+        hardcoded in separate descriptor files instead.
     -->
     <profiles>
         <profile>
