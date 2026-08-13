@@ -19,7 +19,7 @@
             <outputDirectory>native/libs</outputDirectory>
             <includes>
                 <include>libceffx.dylib</include>
-                <include>ceffx Helper.app/**</include>
+                <include>ceffx Helper*.app/**</include>
             </includes>
         </fileSet>
     </fileSets>
