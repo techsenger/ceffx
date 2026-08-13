@@ -18,7 +18,9 @@ to compile native code from source.
 * [Usage](#usage)
     * [Settings](#usage-settings)
     * [Threads](#usage-threads)
-    * [Prebuilt Natives](#usage-prebuit-natives)
+    * [Native Deployment](#usage-native-deployment)
+        * [Automatic Deployment](#usage-automatic-deployment)
+        * [Manual Deployment](#usage-manual-deployment)
 * [Code building](#code-building)
 * [Running Demo](#running-demo)
 * [License](#license)
@@ -176,39 +178,151 @@ or intermittently), while others may fail. In addition, this can result in CEF-r
 
 As a rule of thumb, if something does not work as expected, it is recommended to first check which thread is being used.
 
-### Prebuilt Natives <a name="usage-prebuit-natives"></a>
+### Native Deployment <a name="usage-native-deployment"></a>
 
-CEFFX provides prebuilt native libraries, making it easy to integrate CEF into any JavaFX application without the need
-to compile it from source. This section describes all the steps required to set it up.
+CEFFX provides prebuilt native libraries, making it easy to integrate CEF into any JavaFX application
+without the need to compile it from source.
+
+There are two ways to make CEF and the CEFFX native libraries available to your application, and this
+applies the same way on Linux, Windows and macOS:
+
+1. **Inside application package.** The CEF runtime and CEFFX natives are placed inside your application's own
+   distributable package (for example, as part of a `jpackage` build step) before it is shipped. This is entirely up
+   to whoever packages the application - CEFFX only provides the pieces (the CEF archive, the classified `ceffx-natives`
+   jar, `NativeExtractor`); how and when they are combined into the final package is a packaging-time decision outside
+   CEFFX's scope.
+2. **Outside application package.** CEF and the CEFFX natives live in their own directory, independent of the
+   application package - for example, in a per-user cache directory. This is also what makes local development
+   (`mvn javafx:run`, with no packaged application at all) work the same way as a packaged one. There are two ways to
+   set this up:
+   - **Automatic Deployment** - using the `NativeDeployment` class, described below.
+   - **Manual Deployment** - following the steps described below.
+
+The remainder of this section covers deployment outside the application package, since bundling inside it is a
+packaging concern specific to each application and is not prescribed by CEFFX.
+
+#### Automatic Deployment <a name="usage-automatic-deployment"></a>
+
+Use the `NativeDeployment` class provided by the `ceffx-natives` module. Give it a target directory and it takes care
+of everything else - downloading the correct CEF distribution version, extracting it alongside the CEFFX native binaries,
+and handling the platform-specific layout differences described in the Manual Deployment section below.
+
+> This class is still under development; usage details will be documented here once finalized.
+
+#### Manual Deployment <a name="usage-manual-deployment"></a>
+
+If you prefer to control each step yourself, follow the steps below. This applies the same way on Linux,
+Windows and macOS unless noted otherwise.
 
 1. Download the minimal CEF distribution for the `cef.version` specified in `cef.properties` from
-[CEF](https://cef-builds.spotifycdn.com/index.html). Use the `Version Filter` to locate the correct version. Please
-note that other versions will not work, as CEFFX includes a built-in version check.
-2. Create a directory on your system, for example: `/foo/cef`.
-3. Copy the `contents` of the `Release` folder from the archive into `/foo/cef`.
-4. Copy the `contents` of the `Resources` folder from the archive into `/foo/cef`.
+   [CEF](https://cef-builds.spotifycdn.com/index.html). Use the `Version Filter` to locate the correct version.
+   Please note that other versions will not work, as CEFFX includes a built-in version check.
+2. Create a directory on your system, for example: `/ceffx`.
+3. Copy the contents of the CEF distribution archive into `/ceffx`:
+   - **Linux and Windows** - copy the contents of the `Release` folder and the contents of the
+     `Resources` folder into `/ceffx`.
+   - **macOS** - copy the `Chromium Embedded Framework.framework` directory into `/ceffx/Frameworks/`.
+     The framework is self-contained and already includes all resources, locales and `.pak` files,
+     unlike the loose files shipped on Linux and Windows.
 
-After that, the `/foo/cef` directory should contain the following files (Linux):
+   After that, `/ceffx` should contain (platform-specific contents shown for each OS):
 
+   **Linux**
 ```
-chrome_100_percent.pak
-chrome_200_percent.pak
-chrome-sandbox
-icudtl.dat
-libcef.so
-libEGL.so
-libGLESv2.so
-libvk_swiftshader.so
-libvulkan.so.1
-locales
-resources.pak
-v8_context_snapshot.bin
-vk_swiftshader_icd.json
+   chrome_100_percent.pak
+   chrome_200_percent.pak
+   chrome-sandbox
+   icudtl.dat
+   libcef.so
+   libEGL.so
+   libGLESv2.so
+   libvk_swiftshader.so
+   libvulkan.so.1
+   locales/
+   resources.pak
+   v8_context_snapshot.bin
+   vk_swiftshader_icd.json
 ```
-5. Add the dependencies to your JavaFX project as described in the [dependencies](#dependencies) section.
-6. On the first run, you need to extract the native binaries from the `ceffx-natives` module into `/foo/cef`.
-   Use `NativeExtractor` provided by the `ceffx-natives` module.
-7. Set the system property: `-Djava.library.path=/foo/cef`
+
+   **Windows**
+```
+   chrome_100_percent.pak
+   chrome_200_percent.pak
+   d3dcompiler_47.dll
+   icudtl.dat
+   libcef.dll
+   libEGL.dll
+   libGLESv2.dll
+   locales/
+   resources.pak
+   snapshot_blob.bin
+   v8_context_snapshot.bin
+   vk_swiftshader_icd.json
+   vulkan-1.dll
+```
+
+   **macOS** (both `mac` and `mac-aarch64`)
+```
+   Frameworks/
+   └── Chromium Embedded Framework.framework/
+```
+   On macOS, CEF requires a `Frameworks` subdirectory relative to the helper app bundles - see step 4.
+   The framework itself is self-contained, including all resources, locales and `.pak` files, unlike the
+   loose files shipped on Linux and Windows.
+
+4. On the first run, extract the native binaries from the `ceffx-natives` module into `/ceffx`, using
+   `NativeExtractor`.
+
+   **Linux and Windows** - this adds `libceffx.so`/`ceffx.dll` and the `ceffx_helper` executable, placed
+   flat alongside the files from step 3.
+
+   **macOS** - this adds `libceffx.dylib` directly into `/ceffx`, plus all five `ceffx Helper*.app`
+   bundles (base, GPU, Plugin, Renderer, Alerts) into `/ceffx/Frameworks/`, alongside the framework
+   copied there in step 3:
+```
+   /ceffx
+   ├── libceffx.dylib
+   └── Frameworks/
+       ├── Chromium Embedded Framework.framework/
+       ├── ceffx Helper.app/
+       ├── ceffx Helper (GPU).app/
+       ├── ceffx Helper (Plugin).app/
+       ├── ceffx Helper (Renderer).app/
+       └── ceffx Helper (Alerts).app/
+```
+   This `Frameworks` layout is required by CEF on macOS and is not optional - unlike Linux and Windows, there is no
+   way to point CEF at a fully flat directory instead.
+
+5. Configure your application:
+
+   **Linux and Windows** - simply set the system property:
+```
+   -Djava.library.path=/ceffx
+```
+   CEF locates its helper executable and resources relative to the loaded library by default; no
+   further configuration is required.
+
+   **macOS** - set `java.library.path` to `/ceffx` as above; no further CEF-side configuration is
+   required as long as the `Frameworks` layout from step 4 is in place. CEF finds the helper bundles and
+   framework via the fixed `../Frameworks` relative path from `libceffx.dylib`, the same way it does
+   inside a real `.app` bundle.
+
+   **The same `/ceffx` layout works in both scenarios** - whether the application is launched directly
+   (`mvn javafx:run`, no `.app` bundle exists at all) or from a `jpackage`-built `.app` bundle. Only the
+   `Frameworks` subdirectory needs to physically exist; `/ceffx` itself does not need to be a real,
+   signed `.app` bundle.
+
+
+#### Known open item - helper bundle identifier (macOS)
+
+CEFFX's bundled helper apps currently carry a fixed bundle identifier (`org.ceffx.ceffx.helper[.suffix]`)
+baked in at build time. Chromium derives its Mach IPC rendezvous name from the **host application's**
+bundle identifier and expects each helper's identifier to match it as `<host id>.helper[.suffix]`; a
+mismatch causes subprocesses to fail with `No rendezvous client`.
+
+Whether `--main-bundle-path` (above) resolves this automatically, or whether the helper `Info.plist`
+files still need their `CFBundleIdentifier` rewritten per-application at extraction time, has not yet
+been verified in practice. This will be tested and documented once confirmed.
 
 ## Code Building <a name="code-building"></a>
 
