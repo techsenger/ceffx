@@ -31,17 +31,21 @@ import com.techsenger.ceffx.demo.tab.BrowserTabParams;
 import com.techsenger.ceffx.demo.tab.BrowserTabPort;
 import com.techsenger.ceffx.demo.tab.BrowserTabPresenter;
 import com.techsenger.ceffx.demo.tab.ChangeSource;
-import com.techsenger.ceffx.natives.NativeExtractor;
+import com.techsenger.ceffx.natives.NativeDeployer;
 import com.techsenger.shellfx.core.DefaultShellContext;
 import com.techsenger.shellfx.core.DefaultShellFxView;
 import com.techsenger.shellfx.core.DefaultShellParams;
 import com.techsenger.shellfx.core.DefaultShellPresenter;
 import com.techsenger.shellfx.core.ShellFxView;
 import com.techsenger.shellfx.core.area.AreaParams;
+import com.techsenger.shellfx.core.dialog.DialogParams;
 import com.techsenger.shellfx.core.history.InMemoryHistoryManager;
 import com.techsenger.shellfx.core.registry.ControlRegistry;
 import com.techsenger.shellfx.core.settings.ShellSettings;
 import com.techsenger.shellfx.core.tab.TabContainerFxView;
+import com.techsenger.shellfx.core.window.WindowType;
+import com.techsenger.shellfx.dialogs.progress.ProgressDialogFxView;
+import com.techsenger.shellfx.dialogs.progress.ProgressDialogPresenter;
 import com.techsenger.shellfx.icons.Fonts;
 import com.techsenger.shellfx.icons.IconStylesheetFactory;
 import com.techsenger.shellfx.layout.tabhost.TabHostFxView;
@@ -59,8 +63,13 @@ import com.techsenger.tabpanepro.core.skin.TabPaneProSkin;
 import com.techsenger.tabpanepro.core.skin.TabPaneProSkin.TabHeaderArea;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.BoundingBox;
@@ -70,6 +79,8 @@ import javafx.scene.control.Button;
 import javafx.scene.layout.StackPane;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Demo application.
@@ -100,24 +111,17 @@ import javafx.stage.Stage;
  */
 public class Demo extends Application {
 
+    private static final Logger logger = LoggerFactory.getLogger(Demo.class);
+
     private static final Object TAB_COMPONENT = new Object();
 
-    public static void main(String[] args) throws IOException {
-        // #1 Cef
-        var libPath = System.getProperty("java.library.path");
-        // extract native libraries from ceffx-natives
-        NativeExtractor.extract(Path.of(libPath));
-        CefApp.startup(args);
-        CefApp.addAppHandler(new CefAppHandlerAdapter(null) {
-            @Override
-            public void onBeforeCommandLineProcessing(String processType, CefCommandLine commandLine) {
-//                commandLine.appendSwitchWithValue("force-dark-mode", "1");
-                commandLine.appendSwitchWithValue("enable-features", "WebUIDarkMode,ForceDarkMode");
-            }
-        });
-        var cefApp = CefApp.getInstance(createCefSettings());
+    private static final Map<NativeDeployer.Operation, Double> OPERATION_WEIGHTS = Map.of(
+            NativeDeployer.Operation.DOWNLOAD_CEF, 0.55,
+            NativeDeployer.Operation.EXTRACT_CEF, 0.40,
+            NativeDeployer.Operation.EXTRACT_CEFFX, 0.05
+    );
 
-        // #2 JavaFX
+    public static void main(String[] args) throws IOException {
         Application.launch(Demo.class);
     }
 
@@ -140,6 +144,20 @@ public class Demo extends Application {
         return settings;
     }
 
+    /**
+     * Returns the {@link BrowserTabPort} associated with {@code browser}, or {@code null} if none has been
+     * set yet.
+     *
+     * <p>CEF client handler callbacks (e.g. {@code onLoadStart}, {@code onAddressChange},
+     * {@code onCursorChange}) can fire on the CEF thread as soon as the browser is created, but
+     * {@code TAB_COMPONENT} is only set later, from the JavaFX Application Thread via
+     * {@link Platform#runLater}, once the tab's UI presenter has been constructed. This creates a window
+     * where a handler may run before the property has been set. Callers must check the result for
+     * {@code null} rather than assuming it is always populated by the time a handler fires.
+     *
+     * @param browser the browser to look up the tab port for
+     * @return the associated {@link BrowserTabPort}, or {@code null} if not yet set
+     */
     private static BrowserTabPort getTabPort(CefBrowser browser) {
         BrowserTabPort tabPort = (BrowserTabPort) browser.getProperties().get(TAB_COMPONENT);
         return tabPort;
@@ -153,91 +171,15 @@ public class Demo extends Application {
 
     private CefClient client;
 
-    private volatile boolean isExit;
+    private volatile boolean exiting;
 
     @Override
     public void start(Stage stage) throws Exception {
         createShell(stage);
         createWorkspace();
         createMainMenu();
-
-        CefApp.runLater(() -> {
-            // one client for all tabs
-            client = CefApp.getInstance().createClient();
-
-            client.addLifeSpanHandler(new CefLifeSpanHandlerAdapter() {
-                @Override
-                public void onBeforeClose(CefBrowser browser) {
-                    if (browserCount.decrementAndGet() == 0 && isExit) {
-                        CefApp.runLater(() -> CefApp.getInstance().dispose());
-                    }
-                }
-            });
-            client.addDisplayHandler(new CefDisplayHandlerAdapter() {
-                @Override
-                public void onTitleChange(CefBrowser browser, String title) {
-                    super.onTitleChange(browser, title);
-                    var tabPort = getTabPort(browser);
-                    Platform.runLater(() -> tabPort.onTitleChanged(title));
-                }
-
-                @Override
-                public void onFaviconURLChange(CefBrowser browser, String[] iconUrls) {
-                    super.onFaviconURLChange(browser, iconUrls);
-                    var tabPort = getTabPort(browser);
-                    Platform.runLater(() -> tabPort.onFaviconUrlChanged(iconUrls));
-                }
-
-                @Override
-                public void onAddressChange(CefBrowser browser, CefFrame frame, String url) {
-                    var tabPort = getTabPort(browser);
-                    Platform.runLater(() -> tabPort.onAddressChanged(url, ChangeSource.BROWSER));
-                }
-
-                @Override
-                public boolean onCursorChange(CefBrowser browser, int cursorType) {
-                    var tabPort = getTabPort(browser);
-                    Platform.runLater(() -> tabPort.onCursorChanged(CefCursorUtils.getCursor(cursorType)));
-                    return true;
-                }
-            });
-            client.addLoadHandler(new CefLoadHandlerAdapter() {
-                @Override
-                public void onLoadStart(CefBrowser browser, CefFrame frame,
-                                        CefRequest.TransitionType transitionType) {
-                    if (frame.isMain()) {
-                        CefApp.runLater(() -> {
-                            var devToolsClient = browser.getDevToolsClient();
-                            if (devToolsClient != null) {
-                                devToolsClient.executeDevToolsMethod("Emulation.setAutoDarkModeOverride",
-                                    "{ \"enabled\": true }"
-                                );
-                            }
-                        });
-                    }
-                }
-            });
-            client.addFocusHandler(new CefFocusHandlerAdapter() {
-                @Override
-                public void onTakeFocus(CefBrowser browser, boolean next) {
-                    super.onTakeFocus(browser, next);
-                    var tabPort = getTabPort(browser);
-                    Platform.runLater(() -> tabPort.onTakeFocusFromBrowser());
-                }
-            });
-            client.addPrintHandler(new CefPrintHandlerAdapter() {
-                @Override
-                public void onPrintSettings(CefBrowser browser, CefPrintSettings settings, boolean getDefaults) {
-                    // settings.setDeviceName(...);
-                    settings.setPrinterPrintableArea(
-                        new Dimension2D(300, 300),
-                        new BoundingBox(0, 0, 300, 300),
-                        false
-                    );
-                }
-            });
-        });
-
+        var nativesPath = Paths.get(System.getProperty("java.library.path"));
+        stage.setOnShown(e -> deployNatives(nativesPath, () -> initCef(nativesPath)));
         stage.show();
     }
 
@@ -261,7 +203,7 @@ public class Demo extends Application {
                     CefApp.runLater(() -> CefApp.getInstance().dispose());
                 });
             } else {
-                isExit = true;
+                exiting = true;
             }
             shellPresenter.closeSafely();
         });
@@ -295,6 +237,171 @@ public class Demo extends Application {
         shell.upgradeMenuBar();
     }
 
+    private void deployNatives(Path nativesPath, Runnable onComplete) {
+        try {
+            var completedOperations = NativeDeployer.getStatus(nativesPath);
+            if (completedOperations.size() < NativeDeployer.Operation.values().length) {
+                var pendingOperations = EnumSet.allOf(NativeDeployer.Operation.class);
+                pendingOperations.removeAll(completedOperations);
+                var dialogView = new ProgressDialogFxView();
+                var dialogParams = new DialogParams(WindowType.TOP_LEVEL,
+                        shell.getPresenter().getContext().getSettings().getAppearance());
+                var dialogPresenter = new ProgressDialogPresenter(dialogView, dialogParams);
+                dialogPresenter.initialize();
+                dialogPresenter.setTitle("Deploying Natives");
+                dialogPresenter.setProgress(0);
+                dialogView.getStage().initOwner(shell.getStage());
+                dialogView.getStage().show();
+                Thread.startVirtualThread(() -> {
+                    var lastOp = new AtomicReference<NativeDeployer.Operation>();
+                    var completedOps = EnumSet.noneOf(NativeDeployer.Operation.class);
+                    try {
+                        NativeDeployer.deploy(nativesPath, (op, progress) -> {
+                            Platform.runLater(() -> {
+                                dialogPresenter.setMessage("Operation: " + op);
+                                var previousOp = lastOp.getAndSet(op);
+                                if (previousOp != op) {
+                                    if (previousOp != null) {
+                                        completedOps.add(previousOp);
+                                    }
+                                }
+                                var totProgress = computeOverallProgress(pendingOperations, completedOps, op, progress);
+                                dialogPresenter.setProgress(totProgress);
+                            });
+                        });
+                        Thread.sleep(700);
+                        Platform.runLater(() -> {
+                            dialogPresenter.closeSafely();
+                            onComplete.run();
+                        });
+                    } catch (Exception ex) {
+                        logger.error("Error deploying natives", ex);
+                        Platform.runLater(() -> dialogPresenter.closeSafely());
+                    }
+                });
+            } else {
+                Platform.runLater(() -> onComplete.run());
+            }
+        } catch (Exception ex) {
+            logger.error("Error getting native status", ex);
+        }
+    }
+
+    private double computeOverallProgress(Set<NativeDeployer.Operation> pendingOperations,
+            Set<NativeDeployer.Operation> completedOps, NativeDeployer.Operation currentOp, double currentOpProgress) {
+        double completedWeight = 0;
+        double totalWeight = 0;
+        for (var op : pendingOperations) {
+            var weight = OPERATION_WEIGHTS.get(op);
+            totalWeight += weight;
+            if (op == currentOp) {
+                completedWeight += weight * currentOpProgress;
+            } else if (completedOps.contains(op)) {
+                completedWeight += weight;
+            }
+        }
+        return totalWeight > 0 ? completedWeight / totalWeight : 1.0;
+    }
+
+    private void initCef(Path path) {
+        CefApp.startup(new String[]{"--framework-dir-path", path.toAbsolutePath().toString()});
+        CefApp.addAppHandler(new CefAppHandlerAdapter(null) {
+            @Override
+            public void onBeforeCommandLineProcessing(String processType, CefCommandLine commandLine) {
+//                commandLine.appendSwitchWithValue("force-dark-mode", "1");
+                commandLine.appendSwitchWithValue("enable-features", "WebUIDarkMode,ForceDarkMode");
+            }
+        });
+        var cefApp = CefApp.getInstance(createCefSettings());
+
+        CefApp.runLater(() -> {
+            // one client for all tabs
+            client = CefApp.getInstance().createClient();
+
+            client.addLifeSpanHandler(new CefLifeSpanHandlerAdapter() {
+                @Override
+                public void onBeforeClose(CefBrowser browser) {
+                    if (browserCount.decrementAndGet() == 0 && exiting) {
+                        CefApp.runLater(() -> CefApp.getInstance().dispose());
+                    }
+                }
+            });
+            client.addDisplayHandler(new CefDisplayHandlerAdapter() {
+                @Override
+                public void onTitleChange(CefBrowser browser, String title) {
+                    super.onTitleChange(browser, title);
+                    var tabPort = getTabPort(browser);
+                    if (tabPort != null) {
+                        Platform.runLater(() -> tabPort.onTitleChanged(title));
+                    }
+                }
+
+                @Override
+                public void onFaviconURLChange(CefBrowser browser, String[] iconUrls) {
+                    super.onFaviconURLChange(browser, iconUrls);
+                    var tabPort = getTabPort(browser);
+                    if (tabPort != null) {
+                        Platform.runLater(() -> tabPort.onFaviconUrlChanged(iconUrls));
+                    }
+                }
+
+                @Override
+                public void onAddressChange(CefBrowser browser, CefFrame frame, String url) {
+                    var tabPort = getTabPort(browser);
+                    if (tabPort != null) {
+                        Platform.runLater(() -> tabPort.onAddressChanged(url, ChangeSource.BROWSER));
+                    }
+                }
+
+                @Override
+                public boolean onCursorChange(CefBrowser browser, int cursorType) {
+                    var tabPort = getTabPort(browser);
+                    if (tabPort != null) {
+                        Platform.runLater(() -> tabPort.onCursorChanged(CefCursorUtils.getCursor(cursorType)));
+                    }
+                    return true;
+                }
+            });
+            client.addLoadHandler(new CefLoadHandlerAdapter() {
+                @Override
+                public void onLoadStart(CefBrowser browser, CefFrame frame,
+                                        CefRequest.TransitionType transitionType) {
+                    if (frame.isMain()) {
+                        CefApp.runLater(() -> {
+                            var devToolsClient = browser.getDevToolsClient();
+                            if (devToolsClient != null) {
+                                devToolsClient.executeDevToolsMethod("Emulation.setAutoDarkModeOverride",
+                                    "{ \"enabled\": true }"
+                                );
+                            }
+                        });
+                    }
+                }
+            });
+            client.addFocusHandler(new CefFocusHandlerAdapter() {
+                @Override
+                public void onTakeFocus(CefBrowser browser, boolean next) {
+                    super.onTakeFocus(browser, next);
+                    var tabPort = getTabPort(browser);
+                    if (tabPort != null) {
+                        Platform.runLater(() -> tabPort.onTakeFocusFromBrowser());
+                    }
+                }
+            });
+            client.addPrintHandler(new CefPrintHandlerAdapter() {
+                @Override
+                public void onPrintSettings(CefBrowser browser, CefPrintSettings settings, boolean getDefaults) {
+                    // settings.setDeviceName(...);
+                    settings.setPrinterPrintableArea(
+                        new Dimension2D(300, 300),
+                        new BoundingBox(0, 0, 300, 300),
+                        false
+                    );
+                }
+            });
+        });
+    }
+
     private void onNewTab(String url) {
         CefApp.runLater(()-> {
             try {
@@ -311,7 +418,7 @@ public class Demo extends Application {
                     workspace.getComposer().addTab(tabView);
                 });
             } catch (Throwable ex) {
-                ex.printStackTrace();
+                logger.error("Error creating browser", ex);
             }
         });
     }

@@ -5,5 +5,7 @@
  */
 
 module com.techsenger.ceffx.natives {
+    requires static org.apache.commons.compress;
+
     exports com.techsenger.ceffx.natives;
 }

@@ -15,25 +15,62 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
  * Extracts the CEFFX native payload (native libraries and, on macOS, the helper app bundles) bundled inside this
- * classifier's jar into a target directory on disk, so they can be loaded via {@code java.library.path} or
+ * classifier's jar, flat into a target directory on disk, so they can be loaded via {@code java.library.path} or
  * referenced directly by {@code CefSettings}.
  *
- * <p>On macOS, helper app bundles are placed inside a {@code Frameworks} subdirectory of the target directory,
- * matching the relative layout CEF expects. On Linux and Windows, all files are placed directly in the target
- * directory.
+ * <p>This class only copies files as they are laid out in the jar - it has no knowledge of any platform-specific
+ * directory requirements (such as the {@code Frameworks} subdirectory CEF expects on macOS). Arranging the extracted
+ * files into whatever layout the runtime environment requires is the responsibility of the caller.
  *
  * @author Pavel Castornii
  */
 public final class NativeExtractor {
 
-    private static final String FRAMEWORKS_DIR = "Frameworks";
+    /**
+     * Receives progress updates during {@link #extract(Path, ProgressListener)}.
+     */
+    public interface ProgressListener {
 
-    public static void extract(Path targetDir) throws IOException {
+        /**
+         * Called after each file is copied.
+         *
+         * @param progress completion fraction so far, between 0.0 and 1.0
+         */
+        void onProgress(double progress);
+    }
+
+    /**
+     * Extracts the native payload into {@code targetDir}, creating the directory if it does not already
+     * exist. Existing files at the destination are overwritten. Equivalent to
+     * {@link #extract(Path, ProgressListener)} with no listener.
+     *
+     * @param targetDir the directory to extract the native payload into
+     * @return an unmodifiable list of the paths extracted, relative to {@code targetDir}, in the order
+     *     they were copied
+     * @throws IOException if the native payload cannot be located in this jar, or if extraction fails
+     */
+    public static List<String> extract(Path targetDir) throws IOException {
+        return extract(targetDir, null);
+    }
+
+    /**
+     * Same as {@link #extract(Path)}, but reports progress as extraction proceeds.
+     *
+     * @param targetDir the directory to extract the native payload into
+     * @param listener  receives progress updates, may be {@code null}
+     * @return an unmodifiable list of the paths extracted, relative to {@code targetDir}, in the order
+     *     they were copied
+     * @throws IOException if the native payload cannot be located in this jar, or if extraction fails
+     */
+    public static List<String> extract(Path targetDir, ProgressListener listener) throws IOException {
         Files.createDirectories(targetDir);
         URL resourceUrl = NativeExtractor.class.getResource("/native/libs");
         if (resourceUrl == null) {
@@ -48,45 +85,38 @@ public final class NativeExtractor {
         if ("jar".equals(uri.getScheme())) {
             try (FileSystem fs = FileSystems.newFileSystem(uri, Collections.emptyMap())) {
                 Path source = fs.getPath("/native/libs");
-                copyDirectory(source, targetDir);
+                return copyDirectory(source, targetDir, listener);
             }
         } else {
-            copyDirectory(Path.of(uri), targetDir);
+            return copyDirectory(Path.of(uri), targetDir, listener);
         }
     }
 
-    private static void copyDirectory(Path source, Path targetDir) throws IOException {
+    private static List<String> copyDirectory(Path source, Path targetDir, ProgressListener listener)
+            throws IOException {
+        List<Path> files;
         try (Stream<Path> stream = Files.walk(source)) {
-            for (Path entry : (Iterable<Path>) stream::iterator) {
-                Path relative = source.relativize(entry);
-                Path target = resolveTarget(targetDir, relative);
-                if (Files.isDirectory(entry)) {
-                    Files.createDirectories(target);
-                } else {
-                    Files.createDirectories(target.getParent());
-                    Files.copy(entry, target, StandardCopyOption.REPLACE_EXISTING);
-                    if (!target.toString().endsWith(".dll") && !target.toString().endsWith(".plist")) {
-                        target.toFile().setExecutable(true);
-                    }
-                }
+            files = stream.filter(Files::isRegularFile).collect(Collectors.toList());
+        }
+        var extracted = new ArrayList<String>();
+        var total = files.size();
+        var done = 0;
+        for (Path entry : files) {
+            var relative = source.relativize(entry);
+            var target = targetDir.resolve(relative.toString());
+            Files.createDirectories(target.getParent());
+            Files.copy(entry, target, StandardCopyOption.REPLACE_EXISTING);
+            var fileName = target.getFileName().toString();
+            if (!fileName.endsWith(".dll") && !fileName.endsWith(".plist")) {
+                target.toFile().setExecutable(true);
+            }
+            extracted.add(relative.toString().replace('\\', '/'));
+            done++;
+            if (listener != null) {
+                listener.onProgress(total == 0 ? 1.0 : (double) done / total);
             }
         }
-    }
-
-    /**
-     * Resolves the target path for a payload entry. On macOS ({@link NativeProps#CEFFX_CLASSIFIER} is
-     * "mac" or "mac-aarch64"), CEF resolves helper app bundles relative to a "Frameworks" directory, so
-     * any top-level ".app" bundle (and everything inside it) is redirected into
-     * {@code targetDir/Frameworks/...} instead of being placed flat in {@code targetDir}. On other
-     * platforms, or for any other entry, the path is unchanged from before.
-     */
-    private static Path resolveTarget(Path targetDir, Path relative) {
-        boolean isMac = NativeProps.CEFFX_CLASSIFIER.startsWith("mac");
-        boolean isAppBundle = relative.getNameCount() > 0 && relative.getName(0).toString().endsWith(".app");
-        if (isMac && isAppBundle) {
-            return targetDir.resolve(FRAMEWORKS_DIR).resolve(relative);
-        }
-        return targetDir.resolve(relative);
+        return Collections.unmodifiableList(extracted);
     }
 
     private NativeExtractor() {

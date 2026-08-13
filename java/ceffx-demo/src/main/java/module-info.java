@@ -20,9 +20,11 @@ module com.techsenger.ceffx.demo {
     requires com.techsenger.shellfx.icons;
     requires com.techsenger.shellfx.material;
     requires com.techsenger.shellfx.layout;
+    requires com.techsenger.shellfx.dialogs;
     requires com.techsenger.shellfx.devtools;
     requires com.techsenger.ceffx.natives;
     requires com.techsenger.ceffx.core;
+    requires org.apache.commons.compress;
 
     requires org.apache.logging.log4j.slf4j2.impl;
     requires org.apache.logging.log4j.core;
