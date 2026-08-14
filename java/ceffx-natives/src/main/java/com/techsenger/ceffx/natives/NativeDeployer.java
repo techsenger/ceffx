@@ -98,6 +98,8 @@ public final class NativeDeployer {
 
     private static final String PART_SUFFIX = ".part";
 
+    private static final String MACOS_LIB_DIR = "Lib";
+
     /**
      * Returns the unmodifiable set of deploy operations that have already completed successfully in {@code targetDir}.
      *
@@ -369,10 +371,11 @@ public final class NativeDeployer {
         var extractedFiles = NativeExtractor.extract(targetDir,
                 progress -> reportProgress(listener, Operation.EXTRACT_CEFFX, progress));
         var finalPaths = new ArrayList<String>();
-
         if (isMac()) {
             var frameworksDir = targetDir.resolve(FRAMEWORKS_DIR);
+            var javaDir = targetDir.resolve(MACOS_LIB_DIR);
             Files.createDirectories(frameworksDir);
+            Files.createDirectories(javaDir);
             var movedTopLevelDirs = new HashSet<String>();
             for (String relative : extractedFiles) {
                 var firstSegment = firstSegment(relative);
@@ -385,14 +388,19 @@ public final class NativeDeployer {
             }
             for (String relative : extractedFiles) {
                 var firstSegment = firstSegment(relative);
-                finalPaths.add(movedTopLevelDirs.contains(firstSegment)
-                        ? FRAMEWORKS_DIR + "/" + relative
-                        : relative);
+                if (movedTopLevelDirs.contains(firstSegment)) {
+                    finalPaths.add(FRAMEWORKS_DIR + "/" + relative);
+                } else {
+                    var source = targetDir.resolve(relative);
+                    var destination = javaDir.resolve(relative);
+                    Files.createDirectories(destination.getParent());
+                    Files.move(source, destination, StandardCopyOption.REPLACE_EXISTING);
+                    finalPaths.add(MACOS_LIB_DIR + "/" + relative);
+                }
             }
         } else {
             finalPaths.addAll(extractedFiles);
         }
-
         writeMarker(targetDir.resolve(CEFFX_FILES_MARKER), finalPaths);
     }
 

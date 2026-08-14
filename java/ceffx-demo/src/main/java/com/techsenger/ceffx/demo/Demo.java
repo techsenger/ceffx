@@ -178,7 +178,7 @@ public class Demo extends Application {
         createShell(stage);
         createWorkspace();
         createMainMenu();
-        var nativesPath = Paths.get(System.getProperty("java.library.path"));
+        var nativesPath = Paths.get(System.getProperty("ceffx.natives.path"));
         stage.setOnShown(e -> deployNatives(nativesPath, () -> initCef(nativesPath)));
         stage.show();
     }

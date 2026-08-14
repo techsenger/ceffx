@@ -318,12 +318,13 @@ Windows and macOS unless noted otherwise.
    **Linux and Windows** - this adds `libceffx.so`/`ceffx.dll` and the `ceffx_helper` executable, placed
    flat alongside the files from step 3.
 
-   **macOS** - this adds `libceffx.dylib` directly into `/ceffx`, plus all five `ceffx Helper*.app`
-   bundles (base, GPU, Plugin, Renderer, Alerts) into `/ceffx/Frameworks/`, alongside the framework
-   copied there in step 3:
-   ```
+   **macOS** - this adds `libceffx.dylib` into `/ceffx/Lib/`, plus all five `ceffx Helper*.app` bundles
+   (base, GPU, Plugin, Renderer, Alerts) into `/ceffx/Frameworks/`, alongside the framework copied there
+   in step 3:
+    ```
    /ceffx
-   ├── libceffx.dylib
+   ├── Lib/
+   │   └── libceffx.dylib
    └── Frameworks/
        ├── Chromium Embedded Framework.framework/
        ├── ceffx Helper.app/
@@ -331,6 +332,12 @@ Windows and macOS unless noted otherwise.
        ├── ceffx Helper (Plugin).app/
        ├── ceffx Helper (Renderer).app/
        └── ceffx Helper (Alerts).app/
+    ```
+   The `Lib` subdirectory is required because CEF resolves the helper app bundles and the framework
+   relative to wherever `libceffx.dylib` is loaded from - specifically, as `../Frameworks`. Since
+   `Frameworks` must stay inside the deployment directory rather than a sibling of it, `libceffx.dylib`
+   is placed one level deeper, in `Lib`, so that `../Frameworks` from there correctly resolves to
+   `/ceffx/Frameworks`.
    ```
    This `Frameworks` layout is required by CEF on macOS and is not optional - unlike Linux and Windows, there is no
    way to point CEF at a fully flat directory instead.
