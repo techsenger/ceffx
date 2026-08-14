@@ -195,7 +195,7 @@ applies the same way on Linux, Windows and macOS:
    application package - for example, in a per-user cache directory. This is also what makes local development
    (`mvn javafx:run`, with no packaged application at all) work the same way as a packaged one. There are two ways to
    set this up:
-   - **Automatic Deployment** - using the `NativeDeployment` class, described below.
+   - **Automatic Deployment** - using the `NativeDeployer` class, described below.
    - **Manual Deployment** - following the steps described below.
 
 The remainder of this section covers deployment outside the application package, since bundling inside it is a
@@ -203,11 +203,53 @@ packaging concern specific to each application and is not prescribed by CEFFX.
 
 #### Automatic Deployment <a name="usage-automatic-deployment"></a>
 
-Use the `NativeDeployment` class provided by the `ceffx-natives` module. Give it a target directory and it takes care
-of everything else - downloading the correct CEF distribution version, extracting it alongside the CEFFX native binaries,
-and handling the platform-specific layout differences described in the Manual Deployment section below.
+The `NativeDeployer` class provided by the `ceffx-natives` module performs the complete deployment process.
+It accepts a target directory and handles downloading the correct CEF distribution version (with SHA-1 verification),
+extracting it, and extracting the CEFFX native payload alongside it, including the platform-specific layout
+differences described in the Manual Deployment section below. On macOS, the helper app bundles and the CEF framework
+are placed under a `Frameworks` subdirectory automatically.
 
-> This class is still under development; usage details will be documented here once finalized.
+```java
+NativeDeployer.deploy(targetDir, (operation, progress) -> {
+    System.out.printf("%s: %.0f%%%n", operation, progress * 100);
+});
+```
+
+Deployment is tracked per step, so repeated calls are cheap and safe: `getStatus(targetDir)` returns which of
+the three steps - downloading the CEF archive, extracting it, and extracting the CEFFX payload - have already
+completed, and `deploy` skips whatever is already done. This means `deploy` can safely be called on every
+application startup: after the first run it becomes close to a no-op, and if a previous run was interrupted
+partway through, the next call resumes only the unfinished steps.
+
+```java
+var status = NativeDeployer.getStatus(targetDir);
+```
+
+To force one or more steps to re-run regardless of their current status - for example after upgrading to a
+newer CEFFX version - pass them explicitly:
+
+```java
+NativeDeployer.deploy(targetDir, listener, EnumSet.allOf(NativeDeployer.Operation.class));
+```
+
+Note that forcing one operation does not cascade to any operation it would normally depend on - forcing `DOWNLOAD_CEF`
+alone does not force `EXTRACT_CEF` to re-extract the newly downloaded archive. Combine operations explicitly
+(typically all three, for a full clean redeploy).
+
+**JPMS users:** `NativeDeployer` requires [Apache Commons Compress](https://commons.apache.org/proper/commons-compress/)
+to extract the CEF archive. This dependency is declared as `requires static` in `ceffx-natives`'s
+`module-info.java`, so it is not added to the runtime module graph automatically. It must be declared explicitly
+in the application's `module-info.java`:
+
+```java
+module com.example.myapp {
+    requires com.techsenger.ceffx.natives;
+    requires org.apache.commons.compress;
+}
+```
+
+Applications running on the classpath (unnamed module) are unaffected - Commons Compress is a regular Maven
+dependency of `ceffx-natives` and is already present on the classpath either way.
 
 #### Manual Deployment <a name="usage-manual-deployment"></a>
 
@@ -228,7 +270,7 @@ Windows and macOS unless noted otherwise.
    After that, `/ceffx` should contain (platform-specific contents shown for each OS):
 
    **Linux**
-```
+   ```
    chrome_100_percent.pak
    chrome_200_percent.pak
    chrome-sandbox
@@ -242,10 +284,10 @@ Windows and macOS unless noted otherwise.
    resources.pak
    v8_context_snapshot.bin
    vk_swiftshader_icd.json
-```
+   ```
 
    **Windows**
-```
+   ```
    chrome_100_percent.pak
    chrome_200_percent.pak
    d3dcompiler_47.dll
@@ -259,13 +301,13 @@ Windows and macOS unless noted otherwise.
    v8_context_snapshot.bin
    vk_swiftshader_icd.json
    vulkan-1.dll
-```
+   ```
 
    **macOS** (both `mac` and `mac-aarch64`)
-```
+   ```
    Frameworks/
    └── Chromium Embedded Framework.framework/
-```
+   ```
    On macOS, CEF requires a `Frameworks` subdirectory relative to the helper app bundles - see step 4.
    The framework itself is self-contained, including all resources, locales and `.pak` files, unlike the
    loose files shipped on Linux and Windows.
@@ -279,7 +321,7 @@ Windows and macOS unless noted otherwise.
    **macOS** - this adds `libceffx.dylib` directly into `/ceffx`, plus all five `ceffx Helper*.app`
    bundles (base, GPU, Plugin, Renderer, Alerts) into `/ceffx/Frameworks/`, alongside the framework
    copied there in step 3:
-```
+   ```
    /ceffx
    ├── libceffx.dylib
    └── Frameworks/
@@ -289,16 +331,16 @@ Windows and macOS unless noted otherwise.
        ├── ceffx Helper (Plugin).app/
        ├── ceffx Helper (Renderer).app/
        └── ceffx Helper (Alerts).app/
-```
+   ```
    This `Frameworks` layout is required by CEF on macOS and is not optional - unlike Linux and Windows, there is no
    way to point CEF at a fully flat directory instead.
 
 5. Configure your application:
 
    **Linux and Windows** - simply set the system property:
-```
+   ```
    -Djava.library.path=/ceffx
-```
+   ```
    CEF locates its helper executable and resources relative to the loaded library by default; no
    further configuration is required.
 
@@ -311,18 +353,6 @@ Windows and macOS unless noted otherwise.
    (`mvn javafx:run`, no `.app` bundle exists at all) or from a `jpackage`-built `.app` bundle. Only the
    `Frameworks` subdirectory needs to physically exist; `/ceffx` itself does not need to be a real,
    signed `.app` bundle.
-
-
-#### Known open item - helper bundle identifier (macOS)
-
-CEFFX's bundled helper apps currently carry a fixed bundle identifier (`org.ceffx.ceffx.helper[.suffix]`)
-baked in at build time. Chromium derives its Mach IPC rendezvous name from the **host application's**
-bundle identifier and expects each helper's identifier to match it as `<host id>.helper[.suffix]`; a
-mismatch causes subprocesses to fail with `No rendezvous client`.
-
-Whether `--main-bundle-path` (above) resolves this automatically, or whether the helper `Info.plist`
-files still need their `CFBundleIdentifier` rewritten per-application at extraction time, has not yet
-been verified in practice. This will be tested and documented once confirmed.
 
 ## Code Building <a name="code-building"></a>
 
