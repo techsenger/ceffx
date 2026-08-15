@@ -288,8 +288,8 @@ public class Demo extends Application {
             } else {
                 Platform.runLater(() -> onComplete.run());
             }
-        } catch (Exception ex) {
-            logger.error("Error getting native status", ex);
+        } catch (Throwable t) {
+            logger.error("Error getting native status", t);
         }
     }
 
@@ -310,102 +310,106 @@ public class Demo extends Application {
     }
 
     private void initCef(Path path) {
-        CefApp.startup(new String[]{"--framework-dir-path", path.toAbsolutePath().toString()});
-        CefApp.addAppHandler(new CefAppHandlerAdapter(null) {
-            @Override
-            public void onBeforeCommandLineProcessing(String processType, CefCommandLine commandLine) {
-//                commandLine.appendSwitchWithValue("force-dark-mode", "1");
-                commandLine.appendSwitchWithValue("enable-features", "WebUIDarkMode,ForceDarkMode");
-            }
-        });
-        var cefApp = CefApp.getInstance(createCefSettings());
-
-        CefApp.runLater(() -> {
-            // one client for all tabs
-            client = CefApp.getInstance().createClient();
-
-            client.addLifeSpanHandler(new CefLifeSpanHandlerAdapter() {
+        try {
+            CefApp.startup(new String[]{"--framework-dir-path", path.toAbsolutePath().toString()});
+            CefApp.addAppHandler(new CefAppHandlerAdapter(null) {
                 @Override
-                public void onBeforeClose(CefBrowser browser) {
-                    if (browserCount.decrementAndGet() == 0 && exiting) {
-                        CefApp.runLater(() -> CefApp.getInstance().dispose());
-                    }
+                public void onBeforeCommandLineProcessing(String processType, CefCommandLine commandLine) {
+    //                commandLine.appendSwitchWithValue("force-dark-mode", "1");
+                    commandLine.appendSwitchWithValue("enable-features", "WebUIDarkMode,ForceDarkMode");
                 }
             });
-            client.addDisplayHandler(new CefDisplayHandlerAdapter() {
-                @Override
-                public void onTitleChange(CefBrowser browser, String title) {
-                    super.onTitleChange(browser, title);
-                    var tabPort = getTabPort(browser);
-                    if (tabPort != null) {
-                        Platform.runLater(() -> tabPort.onTitleChanged(title));
-                    }
-                }
+            var cefApp = CefApp.getInstance(createCefSettings());
 
-                @Override
-                public void onFaviconURLChange(CefBrowser browser, String[] iconUrls) {
-                    super.onFaviconURLChange(browser, iconUrls);
-                    var tabPort = getTabPort(browser);
-                    if (tabPort != null) {
-                        Platform.runLater(() -> tabPort.onFaviconUrlChanged(iconUrls));
-                    }
-                }
+            CefApp.runLater(() -> {
+                // one client for all tabs
+                client = CefApp.getInstance().createClient();
 
-                @Override
-                public void onAddressChange(CefBrowser browser, CefFrame frame, String url) {
-                    var tabPort = getTabPort(browser);
-                    if (tabPort != null) {
-                        Platform.runLater(() -> tabPort.onAddressChanged(url, ChangeSource.BROWSER));
+                client.addLifeSpanHandler(new CefLifeSpanHandlerAdapter() {
+                    @Override
+                    public void onBeforeClose(CefBrowser browser) {
+                        if (browserCount.decrementAndGet() == 0 && exiting) {
+                            CefApp.runLater(() -> CefApp.getInstance().dispose());
+                        }
                     }
-                }
+                });
+                client.addDisplayHandler(new CefDisplayHandlerAdapter() {
+                    @Override
+                    public void onTitleChange(CefBrowser browser, String title) {
+                        super.onTitleChange(browser, title);
+                        var tabPort = getTabPort(browser);
+                        if (tabPort != null) {
+                            Platform.runLater(() -> tabPort.onTitleChanged(title));
+                        }
+                    }
 
-                @Override
-                public boolean onCursorChange(CefBrowser browser, int cursorType) {
-                    var tabPort = getTabPort(browser);
-                    if (tabPort != null) {
-                        Platform.runLater(() -> tabPort.onCursorChanged(CefCursorUtils.getCursor(cursorType)));
+                    @Override
+                    public void onFaviconURLChange(CefBrowser browser, String[] iconUrls) {
+                        super.onFaviconURLChange(browser, iconUrls);
+                        var tabPort = getTabPort(browser);
+                        if (tabPort != null) {
+                            Platform.runLater(() -> tabPort.onFaviconUrlChanged(iconUrls));
+                        }
                     }
-                    return true;
-                }
-            });
-            client.addLoadHandler(new CefLoadHandlerAdapter() {
-                @Override
-                public void onLoadStart(CefBrowser browser, CefFrame frame,
-                                        CefRequest.TransitionType transitionType) {
-                    if (frame.isMain()) {
-                        CefApp.runLater(() -> {
-                            var devToolsClient = browser.getDevToolsClient();
-                            if (devToolsClient != null) {
-                                devToolsClient.executeDevToolsMethod("Emulation.setAutoDarkModeOverride",
-                                    "{ \"enabled\": true }"
-                                );
-                            }
-                        });
+
+                    @Override
+                    public void onAddressChange(CefBrowser browser, CefFrame frame, String url) {
+                        var tabPort = getTabPort(browser);
+                        if (tabPort != null) {
+                            Platform.runLater(() -> tabPort.onAddressChanged(url, ChangeSource.BROWSER));
+                        }
                     }
-                }
-            });
-            client.addFocusHandler(new CefFocusHandlerAdapter() {
-                @Override
-                public void onTakeFocus(CefBrowser browser, boolean next) {
-                    super.onTakeFocus(browser, next);
-                    var tabPort = getTabPort(browser);
-                    if (tabPort != null) {
-                        Platform.runLater(() -> tabPort.onTakeFocusFromBrowser());
+
+                    @Override
+                    public boolean onCursorChange(CefBrowser browser, int cursorType) {
+                        var tabPort = getTabPort(browser);
+                        if (tabPort != null) {
+                            Platform.runLater(() -> tabPort.onCursorChanged(CefCursorUtils.getCursor(cursorType)));
+                        }
+                        return true;
                     }
-                }
+                });
+                client.addLoadHandler(new CefLoadHandlerAdapter() {
+                    @Override
+                    public void onLoadStart(CefBrowser browser, CefFrame frame,
+                                            CefRequest.TransitionType transitionType) {
+                        if (frame.isMain()) {
+                            CefApp.runLater(() -> {
+                                var devToolsClient = browser.getDevToolsClient();
+                                if (devToolsClient != null) {
+                                    devToolsClient.executeDevToolsMethod("Emulation.setAutoDarkModeOverride",
+                                        "{ \"enabled\": true }"
+                                    );
+                                }
+                            });
+                        }
+                    }
+                });
+                client.addFocusHandler(new CefFocusHandlerAdapter() {
+                    @Override
+                    public void onTakeFocus(CefBrowser browser, boolean next) {
+                        super.onTakeFocus(browser, next);
+                        var tabPort = getTabPort(browser);
+                        if (tabPort != null) {
+                            Platform.runLater(() -> tabPort.onTakeFocusFromBrowser());
+                        }
+                    }
+                });
+                client.addPrintHandler(new CefPrintHandlerAdapter() {
+                    @Override
+                    public void onPrintSettings(CefBrowser browser, CefPrintSettings settings, boolean getDefaults) {
+                        // settings.setDeviceName(...);
+                        settings.setPrinterPrintableArea(
+                            new Dimension2D(300, 300),
+                            new BoundingBox(0, 0, 300, 300),
+                            false
+                        );
+                    }
+                });
             });
-            client.addPrintHandler(new CefPrintHandlerAdapter() {
-                @Override
-                public void onPrintSettings(CefBrowser browser, CefPrintSettings settings, boolean getDefaults) {
-                    // settings.setDeviceName(...);
-                    settings.setPrinterPrintableArea(
-                        new Dimension2D(300, 300),
-                        new BoundingBox(0, 0, 300, 300),
-                        false
-                    );
-                }
-            });
-        });
+        } catch (Throwable t) {
+            logger.error("Error initializing CEF", t);
+        }
     }
 
     private void onNewTab(String url) {
