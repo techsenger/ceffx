@@ -76,6 +76,13 @@ public class CefClient extends CefClientHandler
     private CefLoadHandler loadHandler_ = null;
     private CefPrintHandler printHandler_ = null;
     private CefRequestHandler requestHandler_ = null;
+    /**
+     * The browser that currently holds focus, or null. Guards onGotFocus against unbounded
+     * recursion: setFocus(true) enters native code, CEF responds by firing OnGotFocus back into
+     * Java, and without this check that would call setFocus again, and so on until the stack is
+     * exhausted (StackOverflowError on the JavaFX Application Thread).
+     */
+    private volatile CefBrowser focusedBrowser_ = null;
     private boolean isDisposed_ = false;
 
     private CefRendererFactory rendererFactory = () -> new CefRendererFX();
@@ -405,6 +412,7 @@ public class CefClient extends CefClientHandler
     @Override
     public void onTakeFocus(CefBrowser browser, boolean next) {
         if (browser == null) return;
+        focusedBrowser_ = null;
         if (focusHandler_ != null) focusHandler_.onTakeFocus(browser, next);
     }
 
@@ -419,6 +427,8 @@ public class CefClient extends CefClientHandler
     @Override
     public void onGotFocus(CefBrowser browser) {
         if (browser == null) return;
+        if (focusedBrowser_ == browser) return;   // already focused - setFocus would recurse
+        focusedBrowser_ = browser;
         browser.setFocus(true);
         if (focusHandler_ != null) focusHandler_.onGotFocus(browser);
     }
@@ -842,7 +852,18 @@ public class CefClient extends CefClientHandler
     }
 
     @Override
-    public boolean getScreenInfo(CefBrowser arg0, CefScreenInfo arg1) {
+    public boolean getScreenInfo(CefBrowser browser, CefScreenInfo screenInfo) {
+        // Was a stub returning false - the only CefRenderHandler method here that did not delegate
+        // to the browser's handler, so CefBrowserOsr.getScreenInfo never ran and the device scale
+        // factor, colour depth and screen rects it supplies never reached CEF. CEF then falls back
+        // to default screen info, which on a Retina display means a 2.0 device scale against a view
+        // rect expressed in logical pixels.
+        if (browser == null) return false;
+
+        CefRenderHandler realHandler = browser.getRenderHandler();
+        if (realHandler != null) {
+            return realHandler.getScreenInfo(browser, screenInfo);
+        }
         return false;
     }
 }
