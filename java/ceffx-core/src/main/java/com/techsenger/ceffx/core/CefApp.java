@@ -13,8 +13,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import javax.swing.Timer;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,17 +28,58 @@ public class CefApp extends CefAppHandlerAdapter {
 
     private static final Logger logger = LoggerFactory.getLogger(CefApp.class);
 
+    /**
+     * The CEF thread. Scheduling-capable so that it can also serve delayed message loop pumps
+     * requested via CefAppHandler.onScheduleMessagePumpWork (see doMessageLoopWork), keeping CEFFX
+     * to its documented two threads: the JavaFX Application Thread and this one.
+     */
     private static class ExecutorHolder {
-        static final ExecutorService INSTANCE = Executors.newSingleThreadExecutor(r -> {
-            Thread t = new Thread(r, "cef-main-thread");
-            t.setDaemon(false);
-            t.setUncaughtExceptionHandler((th, ex) -> logger.error("Error on Cef Thread", ex));
-            return t;
-        });
+        static final ScheduledExecutorService INSTANCE = newExecutor();
+
+        private static ScheduledExecutorService newExecutor() {
+            ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1, r -> {
+                Thread t = new Thread(r, "cef-main-thread");
+                t.setDaemon(false);
+                t.setUncaughtExceptionHandler((th, ex) -> logger.error("Error on Cef Thread", ex));
+                return t;
+            });
+            // A delayed pump left over at shutdown would call into CEF after N_Shutdown. Drop such
+            // tasks instead of running them (the default policy is to run them).
+            executor.setExecuteExistingDelayedTasksAfterShutdownPolicy(false);
+            return executor;
+        }
     }
 
+    /**
+     * Submits {@code r} to run on the CEF thread.
+     *
+     * <p>{@code r} is wrapped in its own try/catch before being submitted. Without this, any exception
+     * {@code r} throws would be silently lost: {@link ExecutorService#submit} wraps the task in a
+     * {@link java.util.concurrent.FutureTask}, which catches any {@link Throwable} internally and stores
+     * it as the task's outcome rather than letting it propagate out of the thread - so the CEF thread's
+     * uncaught exception handler never sees it, and the only other way to observe it would be to read the
+     * returned {@link java.util.concurrent.Future} via {@code get()}, which this method does not do. The
+     * inner try/catch logs the exception itself instead, so failures inside {@code r} are not lost.
+     *
+     * @param r the task to run on the CEF thread
+     */
     public static void runLater(Runnable r) {
-        ExecutorHolder.INSTANCE.submit(r);
+        try {
+            ExecutorHolder.INSTANCE.submit(() -> {
+                try {
+                    r.run();
+                } catch (Throwable t) {
+                    logger.error("Error on CEF thread in runLater task", t);
+                }
+            });
+        } catch (RejectedExecutionException e) {
+            // The CEF thread has been shut down by dispose(). Callers keep arriving after that -
+            // notably CefBrowserOsr's mouse handlers, because JavaFX still delivers enter/exit
+            // events while the window tears down - and an unguarded submit() throws
+            // RejectedExecutionException straight onto the JavaFX Application Thread. There is
+            // nothing useful left to do with the task, so drop it.
+            logger.debug("CEF thread already shut down; dropping task", e);
+        }
     }
 
     public final class CefVersion {
@@ -138,6 +182,9 @@ public class CefApp extends CefAppHandlerAdapter {
         TERMINATED
     }
 
+    /** 30fps floor, matching kMaxTimerDelay in CEF's reference external pump. */
+    private static final long MAX_PUMP_DELAY_MS = 1000 / 30;
+
     /**
      * According the singleton pattern, this attribute keeps
      * one single object of this class.
@@ -145,7 +192,8 @@ public class CefApp extends CefAppHandlerAdapter {
     private static CefApp self = null;
     private static CefAppHandler appHandler_ = null;
     private static CefAppState state_ = CefAppState.NONE;
-    private Timer workTimer_ = null;
+    private final Object pumpLock = new Object();
+    private ScheduledFuture<?> pendingPump = null;
     private HashSet<CefClient> clients_ = new HashSet<CefClient>();
     private CefSettings settings_ = null;
 
@@ -473,6 +521,12 @@ public class CefApp extends CefAppHandlerAdapter {
                 // Shutdown native CEF.
                 N_Shutdown();
 
+                synchronized (pumpLock) {
+                    if (pendingPump != null) {
+                        pendingPump.cancel(false);
+                        pendingPump = null;
+                    }
+                }
                 ExecutorHolder.INSTANCE.shutdown();
                 setState(CefAppState.TERMINATED);
                 CefApp.self = null;
@@ -481,34 +535,73 @@ public class CefApp extends CefAppHandlerAdapter {
     }
 
     /**
-     * Perform a single message loop iteration. Used on all platforms except
-     * Windows with windowed rendering.
+     * Schedule a single message loop iteration. Used on all platforms except Windows with windowed
+     * rendering, and required on macOS, where CEF does not support multi_threaded_message_loop and
+     * so cannot run a loop of its own.
+     *
+     * <p>This is the Java end of CefBrowserProcessHandler::OnScheduleMessagePumpWork: CEF asks for
+     * CefDoMessageLoopWork() to be called in {@code delay_ms}. A request from CEF always takes
+     * precedence, replacing any pump already scheduled, so that work CEF wants done sooner is never
+     * held back by one scheduled for later.
+     *
+     * <p>The pump is scheduled on the CEF thread, which is where all CEF calls must be made.
+     *
+     * @param delay_ms delay requested by CEF, in milliseconds; may be zero or negative for "now"
      */
-    private final long frameTimeMs = 1000 / 60;
-
     public final void doMessageLoopWork(final long delay_ms) {
-//        if (getState() == CefAppState.TERMINATED) {
-//            return;
-//        }
-//
-//        executor.execute(() -> {
-//            try {
-//                N_DoMessageLoopWork();
-//            } finally {
-//                if (getState() != CefAppState.TERMINATED) {
-//                    long delay = (delay_ms > 0) ? delay_ms : frameTimeMs;
-//
-//                    try {
-//                        Thread.sleep(delay);
-//                    } catch (InterruptedException e) {
-//                        Thread.currentThread().interrupt();
-//                        return;
-//                    }
-//
-//                    doMessageLoopWork(frameTimeMs);
-//                }
-//            }
-//        });
+        if (getState() == CefAppState.TERMINATED) {
+            return;
+        }
+        // Cap the delay, exactly as CEF's own reference pump does
+        // (tests/shared/browser/main_message_loop_external_pump.cc: kMaxTimerDelay = 1000/30).
+        final long delay = delay_ms <= 0 ? 0 : Math.min(delay_ms, MAX_PUMP_DELAY_MS);
+        synchronized (pumpLock) {
+            if (pendingPump != null) {
+                pendingPump.cancel(false);
+            }
+            schedulePump(delay);
+        }
+    }
+
+    /** Schedules a pump on the CEF thread. Caller must hold pumpLock. */
+    private void schedulePump(long delay) {
+        try {
+            pendingPump = ExecutorHolder.INSTANCE.schedule(this::pump, delay, TimeUnit.MILLISECONDS);
+        } catch (RejectedExecutionException e) {
+            // Executor already shut down (teardown raced with a pump request) — nothing to do.
+            pendingPump = null;
+        }
+    }
+
+    /**
+     * Runs on the CEF thread.
+     */
+    private void pump() {
+        synchronized (pumpLock) {
+            pendingPump = null;
+        }
+        if (getState() == CefAppState.TERMINATED) {
+            return;
+        }
+        try {
+            N_DoMessageLoopWork();
+        } catch (Throwable t) {
+            logger.error("Error on CEF thread in message loop", t);
+        }
+        // Re-arm, so the loop is self-sustaining rather than purely reactive: a pump that runs only
+        // when CEF asks stalls the moment CEF stops asking, which on macOS left the page blank and
+        // the close handshake unable to complete.
+        //
+        // Do not disturb a pump that CEF requested during the work above, though. CEF's reference
+        // pump draws the same distinction, marking its own re-arm with kTimerDelayPlaceholder and
+        // returning early from OnScheduleWork when a timer is already pending. Without this, a
+        // request for immediate work made inside N_DoMessageLoopWork would be pushed back out to the
+        // 33ms floor by the re-arm that follows it.
+        synchronized (pumpLock) {
+            if (pendingPump == null && getState() != CefAppState.TERMINATED) {
+                schedulePump(MAX_PUMP_DELAY_MS);
+            }
+        }
     }
 
     /**

@@ -99,6 +99,8 @@ public class CefSettings {
      * and you do not need to call doMessageLoopWork() manually. This is generally
      * preferred for UI framework integration.
      *
+     * This option is only supported on Windows and Linux by CEF. See CEF documentation.
+     *
      * @see #windowless_rendering_enabled
      * @see #external_message_pump
      */
