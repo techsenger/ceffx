@@ -32,6 +32,7 @@ import com.techsenger.ceffx.demo.tab.BrowserTabPort;
 import com.techsenger.ceffx.demo.tab.BrowserTabPresenter;
 import com.techsenger.ceffx.demo.tab.ChangeSource;
 import com.techsenger.ceffx.natives.NativeDeployer;
+import com.techsenger.ceffx.natives.NativeProps;
 import com.techsenger.shellfx.core.DefaultShellContext;
 import com.techsenger.shellfx.core.DefaultShellFxView;
 import com.techsenger.shellfx.core.DefaultShellParams;
@@ -128,8 +129,13 @@ public class Demo extends Application {
     private static CefSettings createCefSettings() {
         CefSettings settings = new CefSettings();
         settings.windowless_rendering_enabled = true;
-        settings.multi_threaded_message_loop = true;
-        settings.external_message_pump = false;
+        if (NativeProps.CEF_PLATFORM.startsWith("mac")) {
+            settings.multi_threaded_message_loop = false;
+            settings.external_message_pump = true;
+        } else {
+            settings.multi_threaded_message_loop = true;
+            settings.external_message_pump = false;
+        }
         settings.command_line_args_disabled = false;
         return settings;
     }
