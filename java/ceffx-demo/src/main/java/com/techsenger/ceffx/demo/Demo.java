@@ -311,14 +311,23 @@ public class Demo extends Application {
 
     private void initCef(Path path) {
         try {
-            CefApp.startup(new String[]{"--framework-dir-path", path.toAbsolutePath().toString()});
+            var macFrameworkDir = path.resolve("Frameworks").resolve("Chromium Embedded Framework.framework");
+            CefApp.startup(new String[]{ "--framework-dir-path=" + macFrameworkDir.toAbsolutePath()});
             CefApp.addAppHandler(new CefAppHandlerAdapter(null) {
                 @Override
                 public void onBeforeCommandLineProcessing(String processType, CefCommandLine commandLine) {
-    //                commandLine.appendSwitchWithValue("force-dark-mode", "1");
+                    // commandLine.appendSwitchWithValue("force-dark-mode", "1");
                     commandLine.appendSwitchWithValue("enable-features", "WebUIDarkMode,ForceDarkMode");
+                    if (NativeProps.CEF_PLATFORM.startsWith("mac")) {
+                        commandLine.appendSwitchWithValue("framework-dir-path",
+                                macFrameworkDir.toAbsolutePath().toString());
+                        var mainBundlePath = path.resolve("Frameworks").resolve("ceffx Helper.app");
+                        commandLine.appendSwitchWithValue("main-bundle-path",
+                                mainBundlePath.toAbsolutePath().toString());
+                    }
                 }
             });
+
             var cefApp = CefApp.getInstance(createCefSettings());
 
             CefApp.runLater(() -> {
