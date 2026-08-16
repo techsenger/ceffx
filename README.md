@@ -22,7 +22,7 @@ to compile native code from source.
         * [NativeProps](#usage-native-props)
         * [NativeExtractor](#usage-native-extractor)
         * [NativeDeployer](#usage-native-deployer)
-        * [Path resolution reference](#usage-path-reference)
+        * [Path Resolution Reference](#usage-path-reference)
 * [Code building](#code-building)
 * [Running Demo](#running-demo)
 * [License](#license)
@@ -367,7 +367,7 @@ module com.example.myapp {
 Applications running on the classpath (unnamed module) are unaffected - Commons Compress is a regular
 Maven dependency of `ceffx-natives` and is already present on the classpath either way.
 
-**NativeDeployer operations**:
+**NativeDeployer Operations**:
 
 1. `DOWNLOAD_CEF` downloads the minimal CEF distribution archive matching `NativeProps.CEF_VERSION` and
    `NativeProps.CEF_PLATFORM`, verifying it against the official SHA-1 checksum before use.
@@ -466,7 +466,9 @@ code still expects `targetDir` on the path:
 See the Path resolution reference below for the additional command-line switches macOS needs when running
 outside a real `.app` bundle - for example via `mvn javafx:run`, where no such bundle exists at all.
 
-**CEF initialization**
+**CEF Initialization**
+
+The configuration requires additional settings for macOS:
 
 ```
 var macFrameworkDir = path.resolve("Frameworks").resolve("Chromium Embedded Framework.framework");
@@ -483,7 +485,7 @@ CefApp.addAppHandler(new CefAppHandlerAdapter(null) {
 });
 ```
 
-#### Path resolution reference <a name="usage-path-reference"></a>
+#### Path Resolution Reference <a name="usage-path-reference"></a>
 
 The following settings and mechanisms determine where CEF looks for the helper executable, resources and (on macOS) the
 framework and helper app bundles. Most fall back to a value computed relative to `<library path>` - the directory found
