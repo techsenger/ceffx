@@ -45,6 +45,11 @@ import com.techsenger.shellfx.core.registry.ControlRegistry;
 import com.techsenger.shellfx.core.settings.ShellSettings;
 import com.techsenger.shellfx.core.tab.TabContainerFxView;
 import com.techsenger.shellfx.core.window.WindowType;
+import com.techsenger.shellfx.dialogs.alert.AlertDialogButtons;
+import com.techsenger.shellfx.dialogs.alert.AlertDialogFxView;
+import com.techsenger.shellfx.dialogs.alert.AlertDialogParams;
+import com.techsenger.shellfx.dialogs.alert.AlertDialogPresenter;
+import com.techsenger.shellfx.dialogs.alert.AlertDialogType;
 import com.techsenger.shellfx.dialogs.progress.ProgressDialogFxView;
 import com.techsenger.shellfx.dialogs.progress.ProgressDialogPresenter;
 import com.techsenger.shellfx.icons.Fonts;
@@ -185,7 +190,7 @@ public class Demo extends Application {
         createWorkspace();
         createMainMenu();
         var nativesPath = Paths.get(System.getProperty("ceffx.natives.path"));
-        stage.setOnShown(e -> deployNatives(nativesPath, () -> initCef(nativesPath)));
+        stage.setOnShown(e -> checkNatives(nativesPath));
         stage.show();
     }
 
@@ -243,53 +248,75 @@ public class Demo extends Application {
         shell.upgradeMenuBar();
     }
 
-    private void deployNatives(Path nativesPath, Runnable onComplete) {
+    private void checkNatives(Path nativesPath) {
         try {
             var completedOperations = NativeDeployer.getStatus(nativesPath);
             if (completedOperations.size() < NativeDeployer.Operation.values().length) {
                 var pendingOperations = EnumSet.allOf(NativeDeployer.Operation.class);
                 pendingOperations.removeAll(completedOperations);
-                var dialogView = new ProgressDialogFxView();
-                var dialogParams = new DialogParams(WindowType.TOP_LEVEL,
-                        shell.getPresenter().getContext().getSettings().getAppearance());
-                var dialogPresenter = new ProgressDialogPresenter(dialogView, dialogParams);
+                var dialogView = new AlertDialogFxView<>();
+                var dialogParams = new AlertDialogParams(WindowType.TOP_LEVEL,
+                        shell.getPresenter().getContext().getSettings().getAppearance(),
+                        AlertDialogType.CONFIRMATION);
+                var dialogPresenter = new AlertDialogPresenter<>(dialogView, dialogParams);
                 dialogPresenter.initialize();
-                dialogPresenter.setTitle("Deploying Natives");
-                dialogPresenter.setProgress(0);
+                dialogPresenter.setMessage("Natives are not ready. Would you like to deploy them now?");
                 dialogView.getStage().initOwner(shell.getStage());
                 dialogView.getStage().show();
-                Thread.startVirtualThread(() -> {
-                    var lastOp = new AtomicReference<NativeDeployer.Operation>();
-                    var completedOps = EnumSet.noneOf(NativeDeployer.Operation.class);
-                    try {
-                        NativeDeployer.deploy(nativesPath, (op, progress) -> {
-                            Platform.runLater(() -> {
-                                dialogPresenter.setMessage("Operation: " + op);
-                                var previousOp = lastOp.getAndSet(op);
-                                if (previousOp != op) {
-                                    if (previousOp != null) {
-                                        completedOps.add(previousOp);
-                                    }
-                                }
-                                var totProgress = computeOverallProgress(pendingOperations, completedOps, op, progress);
-                                dialogPresenter.setProgress(totProgress);
-                            });
-                        });
-                        Thread.sleep(700);
-                        Platform.runLater(() -> {
-                            dialogPresenter.closeSafely();
-                            onComplete.run();
-                        });
-                    } catch (Exception ex) {
-                        logger.error("Error deploying natives", ex);
-                        Platform.runLater(() -> dialogPresenter.closeSafely());
+                dialogPresenter.setOnResult((button) -> {
+                    dialogPresenter.closeSafely();
+                    if (button == AlertDialogButtons.YES) {
+                        deployNatives(nativesPath, pendingOperations);
                     }
                 });
             } else {
-                Platform.runLater(() -> onComplete.run());
+                initCef(nativesPath);
             }
         } catch (Throwable t) {
-            logger.error("Error getting native status", t);
+            logger.error("Error checking natives", t);
+        }
+    }
+
+    private void deployNatives(Path nativesPath, Set<NativeDeployer.Operation> pendingOperations) {
+        try {
+            var dialogView = new ProgressDialogFxView();
+            var dialogParams = new DialogParams(WindowType.TOP_LEVEL,
+                    shell.getPresenter().getContext().getSettings().getAppearance());
+            var dialogPresenter = new ProgressDialogPresenter(dialogView, dialogParams);
+            dialogPresenter.initialize();
+            dialogPresenter.setTitle("Deploying Natives");
+            dialogPresenter.setProgress(0);
+            dialogView.getStage().initOwner(shell.getStage());
+            dialogView.getStage().show();
+            Thread.startVirtualThread(() -> {
+                var lastOp = new AtomicReference<NativeDeployer.Operation>();
+                var completedOps = EnumSet.noneOf(NativeDeployer.Operation.class);
+                try {
+                    NativeDeployer.deploy(nativesPath, (op, progress) -> {
+                        Platform.runLater(() -> {
+                            dialogPresenter.setMessage("Operation: " + op);
+                            var previousOp = lastOp.getAndSet(op);
+                            if (previousOp != op) {
+                                if (previousOp != null) {
+                                    completedOps.add(previousOp);
+                                }
+                            }
+                            var totProgress = computeOverallProgress(pendingOperations, completedOps, op, progress);
+                            dialogPresenter.setProgress(totProgress);
+                        });
+                    });
+                    Thread.sleep(700);
+                    Platform.runLater(() -> {
+                        dialogPresenter.closeSafely();
+                        initCef(nativesPath);
+                    });
+                } catch (Exception ex) {
+                    logger.error("Error deploying natives", ex);
+                    Platform.runLater(() -> dialogPresenter.closeSafely());
+                }
+            });
+        } catch (Throwable t) {
+            logger.error("Error deploying natives", t);
         }
     }
 
