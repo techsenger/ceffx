@@ -516,7 +516,7 @@ diving into per-OS mechanics or edge cases. Five actors are involved, each with 
   Java into CEF native objects cross through `libceffx`, and native CEF callbacks destined for Java handlers (`onPaint`,
   `onTitleChange`, etc.) cross back through `libceffx`.
 * **`libcef`** - the CEF/Chromium framework itself, loaded into the application process by `libceffx`. From this point on,
-  CEF/Chromium performs the initialization and process management described below: it reads configuration, decides when
+  `libcef` performs the initialization and process management described below: it reads configuration, decides when
   a child process is needed, prepares what that child needs to know, and asks the OS to create it.
 * **Helper executable** - the on-disk binary `libcef` launches to create a child process: `ceffx_helper`/`ceffx_helper.exe`
   on Linux/Windows, or one of the `ceffx Helper*.app` bundles on macOS (see [Native Deployment](#usage-native-deployment)).
