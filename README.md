@@ -511,9 +511,10 @@ diving into per-OS mechanics or edge cases. Five actors are involved, each with 
 
 * **Application process** - your JVM/JavaFX process. Starts everything below and stays alive for the whole session;
   every process that follows is spawned by it (directly or indirectly), never the other way around.
-* **`libceffx`** - a small native bridge library. Its only job is to get loaded into the application process and, in
-  turn, get `libcef` loaded into that same process. Once that's done, `libceffx` steps out of the picture - it plays
-  no further role in what follows.
+* **`libceffx`** - the native bridge library, loaded into the application process. It performs the one-time bootstrap of
+  loading `libcef` at startup (step 1 below), then remains active as the JNI bridge for the entire session: calls from
+  Java into CEF native objects cross through `libceffx`, and native CEF callbacks destined for Java handlers (`onPaint`,
+  `onTitleChange`, etc.) cross back through `libceffx`.
 * **`libcef`** - the CEF/Chromium framework itself, loaded into the application process by `libceffx`. From this point on,
   CEF/Chromium performs the initialization and process management described below: it reads configuration, decides when
   a child process is needed, prepares what that child needs to know, and asks the OS to create it.
