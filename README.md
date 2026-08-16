@@ -223,7 +223,7 @@ A **message pump** is a single call to the function that does one iteration of t
 Calling it once checks whether CEF has anything pending right now and handles it if so, then returns. On Windows and
 Linux, CEF pumps itself: it runs its loop on its own native thread, calling that function over and over with no help
 from the application. On macOS, that mode isn't available, so the application has to call the pump function itself -
-on the CEF thread CEFFX maintains for this purpose - one call at a time, whenever CEF asks for one. The settings above
+on the CEF thread CEFFX maintains for this purpose - one call at a time, whenever CEF asks for one.
 
 The two loops never call into each other directly. Whenever work needs to cross from one side to the
 other, it does so explicitly, by scheduling a task on the target thread:
@@ -449,7 +449,7 @@ Maven dependency of `ceffx-natives` and is already present on the classpath eith
 
 **Library Path**
 
-To work with the `NativeDeployer` configuration is it necessary to set `java.library.path`:
+To work with the `NativeDeployer` configuration it is necessary to set `java.library.path`:
 
 Linux and Windows - point `java.library.path` at `targetDir`:
 ```
@@ -472,14 +472,14 @@ outside a real `.app` bundle - for example via `mvn javafx:run`, where no such b
 The configuration requires additional settings for macOS:
 
 ```
-var macFrameworkDir = path.resolve("Frameworks").resolve("Chromium Embedded Framework.framework");
+var macFrameworkDir = targetDir.resolve("Frameworks").resolve("Chromium Embedded Framework.framework");
 CefApp.startup(new String[]{ "--framework-dir-path=" + macFrameworkDir.toAbsolutePath()});
 CefApp.addAppHandler(new CefAppHandlerAdapter(null) {
     @Override
     public void onBeforeCommandLineProcessing(String processType, CefCommandLine commandLine) {
         if (NativeProps.CEF_PLATFORM.startsWith("mac")) {
             commandLine.appendSwitchWithValue("framework-dir-path", macFrameworkDir.toAbsolutePath().toString());
-            var mainBundlePath = path.resolve("Frameworks").resolve("ceffx Helper.app");
+            var mainBundlePath = targetDir.resolve("Frameworks").resolve("ceffx Helper.app");
             commandLine.appendSwitchWithValue("main-bundle-path", mainBundlePath.toAbsolutePath().toString());
         }
     }
