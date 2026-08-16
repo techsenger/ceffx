@@ -23,6 +23,7 @@ to compile native code from source.
         * [NativeExtractor](#usage-native-extractor)
         * [NativeDeployer](#usage-native-deployer)
         * [Path Resolution Reference](#usage-path-reference)
+    * [Native Startup](#usage-native-startup)
 * [Code building](#code-building)
 * [Running Demo](#running-demo)
 * [License](#license)
@@ -502,6 +503,48 @@ by scanning `java.library.path` for `libceffx.dylib`, `libceffx.so` or `ceffx.dl
 | `framework-dir-path` Chromium command-line switch | macOS | Not set by CEFFX itself - this is a real Chromium switch, distinct from the CEFFX startup argument above. When running outside a real `.app` bundle, the application must add it explicitly via `CefCommandLine.appendSwitchWithValue("framework-dir-path", ...)` inside its own `CefAppHandler.onBeforeCommandLineProcessing()`, pointing at the same framework path passed to `startup()`. Without it, resource lookups that go through Chromium's own bundle resolution (such as `icudtl.dat`) fail even though the framework binary itself loaded correctly via `dlopen`. |
 | `main-bundle-path` Chromium command-line switch | macOS | Not set by CEFFX itself, and no `CefSettings` field exists for it. Chromium derives the Mach rendezvous name subprocesses use to connect back to the browser process from this bundle's identifier, expecting each helper's own identifier to match as `<id>.helper[.suffix]`. Outside a real `.app` bundle there is no such identifier to derive from, so subprocesses fail with "No rendezvous client" unless the application adds this switch explicitly via `onBeforeCommandLineProcessing`, pointing at `ceffx Helper.app` itself - which happens to carry the same fixed identifier the shipped helper bundles were built with. |
 | `java.library.path` scanning | All | The mechanism `browser_subprocess_path`/`resources_dir_path`/`locales_dir_path` fall back to when unset: CEF scans each entry in `java.library.path` and uses whichever one actually contains the CEFFX native library. |
+
+### Native Startup <a name="usage-native-startup"></a>
+
+This is a broad-strokes overview, not an exhaustive account - it names the actors and the order they act in, without
+diving into per-OS mechanics or edge cases. Five actors are involved, each with one job:
+
+* **Application process** - your JVM/JavaFX process. Starts everything below and stays alive for the whole session;
+  every process that follows is spawned by it (directly or indirectly), never the other way around.
+* **`libceffx`** - a small native bridge library. Its only job is to get loaded into the application process and, in
+  turn, get `libcef` loaded into that same process. Once that's done, `libceffx` steps out of the picture - it plays
+  no further role in what follows.
+* **`libcef`** - the CEF/Chromium framework itself, loaded into the application process by `libceffx`. From this point on,
+  CEF/Chromium performs the initialization and process management described below: it reads configuration, decides when
+  a child process is needed, prepares what that child needs to know, and asks the OS to create it.
+* **Helper executable** - the on-disk binary `libcef` launches to create a child process: `ceffx_helper`/`ceffx_helper.exe`
+  on Linux/Windows, or one of the `ceffx Helper*.app` bundles on macOS (see [Native Deployment](#usage-native-deployment)).
+  It isn't running yet at this point - it's just a file on disk that `libcef` knows the path to.
+* **Child process** - the running instance of the helper executable once `libcef` has spawned it: a separate OS process
+  (a renderer, or the GPU process), not another copy of your application. It loads its own copy of `libcef` and does
+  the actual rendering work.
+
+The sequence:
+
+1. **Load `libceffx`.** The application process resolves and loads `libceffx` into itself (via `java.library.path`).
+2. **Load `libcef`.** `libceffx` loads the CEF framework binary (`libcef`) into the application process. From this point
+   on, `libcef` controls the startup sequence described below.
+3. **Initialize.** `libcef` performs its own startup, and gives the application a chance to customize how it will
+   identify itself when launching children later (see [Settings](#usage-settings)).
+4. **Locate the helper executable.** `libcef` determines it needs a child process - a GPU process almost immediately,
+   a renderer process per `CefBrowser` (see the note below) - and works out where the corresponding helper executable
+   lives on disk (see [Path Resolution Reference](#usage-path-reference)).
+5. **Prepare the child.** `libcef` builds what the not-yet-running helper executable will need to start correctly as
+   that child.
+6. **Spawn.** `libcef` asks the OS to run the helper executable. Only from this point does the child process exist, as
+   a separate OS process with its own PID and memory - it inherits nothing from the application process.
+7. **Handshake.** `libcef` (still inside the application process) and the newly spawned child process establish
+   inter-process communication (IPC) with each other. This step can fail even though the child process launched
+   successfully - see [Path Resolution Reference](#usage-path-reference) for the platform-specific cause.
+
+Only after a successful handshake does the child process do its actual job - rendering a page or handling GPU
+work - with results delivered back through `libcef`, in the application process, and from there into your own
+application code on the CEF thread.
 
 ## Code Building <a name="code-building"></a>
 
