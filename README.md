@@ -278,7 +278,6 @@ NativeProps.CEF_DISTRIBUTION     // e.g. "cef_binary_146.0.10+g8219561+chromium-
 NativeProps.CEF_BASE_URL         // e.g. "https://cef-builds.spotifycdn.com/"
 NativeProps.CEF_DOWNLOAD_URL     // CEF_BASE_URL + CEF_DISTRIBUTION + ".tar.bz2"
 NativeProps.CEF_DOWNLOAD_URL_MIN // CEF_BASE_URL + CEF_DISTRIBUTION + "_minimal.tar.bz2"
-NativeProps.CEFFX_CLASSIFIER     // e.g. "linux", "mac", "mac-aarch64", "win"
 ```
 
 These values are read once, at class initialization, from a `native.properties` resource shipped inside this

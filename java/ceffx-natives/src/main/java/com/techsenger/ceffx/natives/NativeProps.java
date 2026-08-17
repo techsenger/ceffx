@@ -58,11 +58,6 @@ public final class NativeProps {
      */
     public static final String CEF_DOWNLOAD_URL_MIN;
 
-    /**
-     * The Maven classifier of this jar, for example {@code linux}, {@code mac}, {@code mac-aarch64} or {@code win}.
-     */
-    public static final String CEFFX_CLASSIFIER;
-
     static {
         var properties = new Properties();
         try (InputStream in = NativeProps.class.getResourceAsStream("native.properties")) {
@@ -77,7 +72,6 @@ public final class NativeProps {
         CEF_BASE_URL = requireProperty(properties, "cef.baseUrl");
         CEF_PLATFORM = requireProperty(properties, "cef.platform");
         CEF_DISTRIBUTION = requireProperty(properties, "cef.distribution");
-        CEFFX_CLASSIFIER = requireProperty(properties, "ceffx.classifier");
         var encodedDistribution = urlEncodeDistribution(CEF_DISTRIBUTION);
         CEF_DOWNLOAD_URL = CEF_BASE_URL + encodedDistribution + ".tar.bz2";
         CEF_DOWNLOAD_URL_MIN = CEF_BASE_URL + encodedDistribution + "_minimal.tar.bz2";

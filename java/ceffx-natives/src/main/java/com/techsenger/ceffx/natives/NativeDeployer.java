@@ -414,7 +414,7 @@ public final class NativeDeployer {
     // -------------------------------------------------------------------------------------------
 
     private static boolean isMac() {
-        return NativeProps.CEFFX_CLASSIFIER.startsWith("mac");
+        return NativeProps.CEF_PLATFORM.startsWith("mac");
     }
 
     private static void reportProgress(ProgressListener listener, Operation operation, double progress) {
