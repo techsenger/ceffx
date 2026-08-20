@@ -105,7 +105,7 @@ public class BrowserTabFxView extends AbstractTabFxView<BrowserTabPresenter> imp
     }
 
     @Override
-    public void setAddress(String url) {
+    public void updateAddress(String url) {
         this.addressTextField.setText(url);
     }
 
@@ -115,7 +115,7 @@ public class BrowserTabFxView extends AbstractTabFxView<BrowserTabPresenter> imp
     }
 
     @Override
-    public void setCursor(Cursor cursor) {
+    public void updateCursor(Cursor cursor) {
         this.browserPane.setCursor(cursor);
     }
 

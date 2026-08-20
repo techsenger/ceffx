@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import javafx.scene.Cursor;
@@ -95,6 +96,8 @@ public class BrowserTabPresenter extends AbstractTabPresenter<BrowserTabView> im
 
     private volatile boolean darkTheme = true;
 
+    private Cursor cursor;
+
     public BrowserTabPresenter(BrowserTabView view, BrowserTabParams params) {
         super(view, params);
         this.shellContext = params.getContext();
@@ -157,7 +160,11 @@ public class BrowserTabPresenter extends AbstractTabPresenter<BrowserTabView> im
 
     @Override
     public void onCursorChanged(Cursor cursor) {
-        getView().setCursor(cursor);
+        setCursor(cursor);
+    }
+
+    public Cursor getCursor() {
+        return this.cursor;
     }
 
     @Override
@@ -261,8 +268,19 @@ public class BrowserTabPresenter extends AbstractTabPresenter<BrowserTabView> im
     }
 
     protected void setAddress(String url) {
+        if (Objects.equals(this.address, url)) {
+            return;
+        }
         this.address = url;
-        getView().setAddress(url);
+        getView().updateAddress(url);
+    }
+
+    protected void setCursor(Cursor cursor) {
+        if (Objects.equals(this.cursor, cursor)) {
+            return;
+        }
+        this.cursor = cursor;
+        getView().updateCursor(cursor);
     }
 
     private void loadFavicon(FavIconType iconType, String iconUrl) {

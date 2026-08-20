@@ -27,9 +27,9 @@ public interface BrowserTabView extends TabView {
     @Override
     Composer getComposer();
 
-    void setAddress(String url);
+    void updateAddress(String url);
 
     void transferFocusFromBrowser();
 
-    void setCursor(Cursor cursor);
+    void updateCursor(Cursor cursor);
 }
