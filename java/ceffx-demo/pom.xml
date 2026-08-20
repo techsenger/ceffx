@@ -170,8 +170,8 @@
                     <mainClass>com.techsenger.ceffx.demo.Demo</mainClass>
                     <options>
                         <option>-Xrunjdwp:transport=dt_socket,address=7700,server=y,suspend=n</option>
-                        <option>-Dceffx.natives.path=${project.build.directory}/ceffx-natives</option>
-                        <option>-Djava.library.path=${project.build.directory}/ceffx-natives${path.separator}${project.build.directory}/ceffx-natives/Lib</option>
+                        <option>-Dceffx.natives.path=${project.build.directory}/natives</option>
+                        <option>-Djava.library.path=${project.build.directory}/natives${path.separator}${project.build.directory}/natives/Lib</option>
                         <option>--enable-native-access=javafx.graphics</option>
                         <option>--enable-native-access=com.techsenger.ceffx.core</option>
                         <option>-Djavafx.enablePreview=true</option>
