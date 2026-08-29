@@ -151,7 +151,7 @@ public class Demo extends Application {
         appearance.setRegularFont(Font.font("System", 14));
         appearance.setMonospaceFont(Font.font("Monospace", 14));
         appearance.setTheme(AtlantaFxTheme.CUPERTINO_DARK);
-        appearance.setDensity(Density.S);
+        appearance.setDensity(Density.M);
         return settings;
     }
 
