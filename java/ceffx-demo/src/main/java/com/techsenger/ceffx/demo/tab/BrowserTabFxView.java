@@ -122,7 +122,7 @@ public class BrowserTabFxView extends AbstractTabFxView<BrowserTabPresenter> imp
     @Override
     protected void build() {
         super.build();
-        toolBar.getStyleClass().add(StyleClasses.PROMINENT);
+        toolBar.getStyleClass().addAll(StyleClasses.PROMINENT, StyleClasses.BLEND);
         forwardButton.getStyleClass().addAll(StyleClasses.SIZE_L);
         backButton.getStyleClass().addAll(StyleClasses.SIZE_L);
         devToolsButton.getStyleClass().addAll(StyleClasses.SIZE_L);
