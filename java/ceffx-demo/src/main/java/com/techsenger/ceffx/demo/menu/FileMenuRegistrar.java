@@ -7,14 +7,14 @@
 package com.techsenger.ceffx.demo.menu;
 
 import com.techsenger.shellfx.core.ShellFxView;
-import com.techsenger.shellfx.core.menu.AbstractMenuItemHandler;
-import com.techsenger.shellfx.core.menu.MenuItemHandler;
 import com.techsenger.shellfx.core.registry.AbstractControlRegistrar;
 import com.techsenger.shellfx.core.registry.ControlFactory;
 import com.techsenger.shellfx.core.registry.ControlRegistry;
+import com.techsenger.shellfx.material.menu.AbstractMenuItemHandler;
 import com.techsenger.shellfx.material.menu.ManagedMenu;
 import com.techsenger.shellfx.material.menu.ManagedMenuGroup;
 import com.techsenger.shellfx.material.menu.ManagedMenuItem;
+import com.techsenger.shellfx.material.menu.MenuItemHandler;
 
 /**
  *

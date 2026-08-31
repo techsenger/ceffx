@@ -33,6 +33,7 @@ import com.techsenger.ceffx.demo.tab.BrowserTabPresenter;
 import com.techsenger.ceffx.demo.tab.ChangeSource;
 import com.techsenger.ceffx.natives.NativeDeployer;
 import com.techsenger.ceffx.natives.NativeProps;
+import com.techsenger.shellfx.core.CoreComponents;
 import com.techsenger.shellfx.core.DefaultShellContext;
 import com.techsenger.shellfx.core.DefaultShellFxView;
 import com.techsenger.shellfx.core.DefaultShellParams;
@@ -58,6 +59,7 @@ import com.techsenger.shellfx.layout.tabhost.TabHostFxView;
 import com.techsenger.shellfx.layout.tabhost.TabHostPresenter;
 import com.techsenger.shellfx.material.icon.FontIconView;
 import com.techsenger.shellfx.material.icon.PlainFontIcon;
+import com.techsenger.shellfx.material.menu.DefaultMenuGroupName;
 import com.techsenger.shellfx.material.style.Density;
 import com.techsenger.shellfx.material.style.IconStylesheets;
 import com.techsenger.shellfx.material.style.StyleClasses;
@@ -199,7 +201,8 @@ public class Demo extends Application {
         IconStylesheets.addAll(IconStylesheetFactory.forAll());
 
         var stylesheets = List.of(new Stylesheet(Demo.class.getResource("demo.css")));
-        var shellView = new DefaultShellFxView<>(this, stage, stylesheets, new ControlRegistry());
+        var controlRegistry = new ControlRegistry(CoreComponents.SHELL, new DefaultMenuGroupName("MainMenuGroup"));
+        var shellView = new DefaultShellFxView<>(this, stage, stylesheets, controlRegistry);
         this.shell = shellView;
         var settings = createShellSettings();
         var context = new DefaultShellContext(settings, new InMemoryHistoryManager(), getHostServices());
