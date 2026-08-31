@@ -66,7 +66,6 @@ import com.techsenger.shellfx.material.style.StyleClasses;
 import com.techsenger.shellfx.material.style.Stylesheet;
 import com.techsenger.shellfx.material.theme.AtlantaFxTheme;
 import com.techsenger.tabpanepro.core.TabPanePro;
-import com.techsenger.tabpanepro.core.skin.TabHeaderAreaPolicy;
 import com.techsenger.tabpanepro.core.skin.TabPaneProSkin;
 import com.techsenger.tabpanepro.core.skin.TabPaneProSkin.TabHeaderArea;
 import java.io.IOException;
@@ -230,7 +229,6 @@ public class Demo extends Application {
         tabPane.setTabMaxWidth(220);
         TabPaneProSkin skin = (TabPaneProSkin) tabPane.getSkin();
         TabHeaderArea tabHeaderArea = skin.getTabHeaderArea();
-        tabHeaderArea.setPolicy(TabHeaderAreaPolicy.ALWAYS_VISIBLE);
         StackPane stickyArea = tabHeaderArea.getStickyArea();
         stickyArea.setPadding(new Insets(2, 0, 0, 0));
         var newTabButton = new Button(null, new FontIconView(new PlainFontIcon(0xF0415)));
