@@ -8,8 +8,6 @@ package com.techsenger.ceffx.demo.tab;
 
 import com.techsenger.ceffx.core.CefApp;
 import com.techsenger.ceffx.core.browser.CefBrowserBase;
-import com.techsenger.ceffx.demo.DemoComponents;
-import com.techsenger.patternfx.mvp.ComponentDescriptor;
 import com.techsenger.shellfx.core.CloseCheckResult;
 import com.techsenger.shellfx.core.ClosePreparationResult;
 import com.techsenger.shellfx.core.ShellContext;
@@ -188,11 +186,6 @@ public class BrowserTabPresenter extends AbstractTabPresenter<BrowserTabView> im
     @Override
     public void onTakeFocusFromBrowser() {
         getView().transferFocusFromBrowser();
-    }
-
-    @Override
-    protected ComponentDescriptor createDescriptor() {
-        return new ComponentDescriptor(DemoComponents.BROWSER_TAB);
     }
 
     protected void onAddressSubmitted() {
