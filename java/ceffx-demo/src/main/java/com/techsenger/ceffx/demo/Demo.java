@@ -24,8 +24,7 @@ import com.techsenger.ceffx.core.handler.CefLoadHandlerAdapter;
 import com.techsenger.ceffx.core.handler.CefPrintHandlerAdapter;
 import com.techsenger.ceffx.core.misc.CefPrintSettings;
 import com.techsenger.ceffx.core.network.CefRequest;
-import com.techsenger.ceffx.demo.menu.BookmarkMenuRegistrar;
-import com.techsenger.ceffx.demo.menu.FileMenuRegistrar;
+import com.techsenger.ceffx.demo.controls.ModuleControlRegistrar;
 import com.techsenger.ceffx.demo.tab.BrowserTabFxView;
 import com.techsenger.ceffx.demo.tab.BrowserTabParams;
 import com.techsenger.ceffx.demo.tab.BrowserTabPort;
@@ -33,7 +32,6 @@ import com.techsenger.ceffx.demo.tab.BrowserTabPresenter;
 import com.techsenger.ceffx.demo.tab.ChangeSource;
 import com.techsenger.ceffx.natives.NativeDeployer;
 import com.techsenger.ceffx.natives.NativeProps;
-import com.techsenger.shellfx.core.CoreComponents;
 import com.techsenger.shellfx.core.DefaultShellContext;
 import com.techsenger.shellfx.core.DefaultShellFxView;
 import com.techsenger.shellfx.core.DefaultShellParams;
@@ -59,7 +57,6 @@ import com.techsenger.shellfx.layout.tabhost.TabHostFxView;
 import com.techsenger.shellfx.layout.tabhost.TabHostPresenter;
 import com.techsenger.shellfx.material.icon.FontIconView;
 import com.techsenger.shellfx.material.icon.PlainFontIcon;
-import com.techsenger.shellfx.material.menu.DefaultMenuGroupName;
 import com.techsenger.shellfx.material.style.Density;
 import com.techsenger.shellfx.material.style.IconStylesheets;
 import com.techsenger.shellfx.material.style.StyleClasses;
@@ -200,8 +197,9 @@ public class Demo extends Application {
         IconStylesheets.addAll(IconStylesheetFactory.forAll());
 
         var stylesheets = List.of(new Stylesheet(Demo.class.getResource("demo.css")));
-        var controlRegistry = new ControlRegistry(CoreComponents.SHELL, new DefaultMenuGroupName("MainMenuGroup"));
-        var shellView = new DefaultShellFxView<>(this, stage, stylesheets, controlRegistry);
+        var controlRegistry = new ControlRegistry();
+        var shellView = new DefaultShellFxView<>(this, stage, stylesheets, ShellControls.MAIN_MENU_GROUP,
+                controlRegistry);
         this.shell = shellView;
         var settings = createShellSettings();
         var context = new DefaultShellContext(settings, new InMemoryHistoryManager(), getHostServices());
@@ -241,11 +239,8 @@ public class Demo extends Application {
     }
 
     private void createMainMenu() {
-        var controlRegistry = shell.getControlRegistry();
-        var bookMarkRegistrar = new BookmarkMenuRegistrar(controlRegistry, shell, this::onNewTab);
-        bookMarkRegistrar.register();
-        var fileRegistrar = new FileMenuRegistrar(controlRegistry, shell);
-        fileRegistrar.register();
+        var registrar = new ModuleControlRegistrar(shell, this::onNewTab);
+        registrar.register();
         shell.upgradeMenuBar();
     }
 
