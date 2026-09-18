@@ -8,9 +8,9 @@ package com.techsenger.ceffx.demo.controls;
 
 import com.techsenger.ceffx.demo.ShellControls;
 import com.techsenger.ceffx.demo.TabOpener;
-import com.techsenger.shellfx.core.ShellFxView;
-import com.techsenger.shellfx.core.registry.AbstractControlRegistrar;
+import com.techsenger.shellfx.core.ShellView;
 import com.techsenger.shellfx.core.registry.ControlFactory;
+import com.techsenger.shellfx.core.registry.ControlRegistry;
 import com.techsenger.shellfx.material.menu.AbstractMenuItemHandler;
 import com.techsenger.shellfx.material.menu.ManagedMenu;
 import com.techsenger.shellfx.material.menu.ManagedMenuGroup;
@@ -25,7 +25,7 @@ import java.util.stream.IntStream;
  *
  * @author Pavel Castornii
  */
-public class ModuleControlRegistrar extends AbstractControlRegistrar {
+public class ModuleControlRegistrar {
 
     private static record Bookmark(String title, String url) { }
 
@@ -39,17 +39,15 @@ public class ModuleControlRegistrar extends AbstractControlRegistrar {
             new Bookmark("YouTube", "https://www.youtube.com/"),
             new Bookmark("GitHub", "https://github.com/"));
 
-    private final ShellFxView<?> shell;
+    private final ShellView<?> shell;
 
     private final TabOpener tabOpener;
 
-    public ModuleControlRegistrar(ShellFxView<?> shell, TabOpener tabOpener) {
-        super(shell.getControlRegistry());
+    public ModuleControlRegistrar(ShellView<?> shell, TabOpener tabOpener) {
         this.shell = shell;
         this.tabOpener = tabOpener;
     }
 
-    @Override
     public void register() {
         registerFileMenu();
         registerFileGroup();
@@ -66,58 +64,58 @@ public class ModuleControlRegistrar extends AbstractControlRegistrar {
     }
 
     private void registerFileMenu() {
-        ControlFactory<ShellFxView<?>, ManagedMenu> f = (v) -> {
+        ControlFactory<ShellView<?>, ManagedMenu> f = (v) -> {
             var menu = new ManagedMenu(ShellControls.FileMenu.NAME, "_File", 0);
             return menu;
         };
-        addRegistration(getRegistry().registerMenu(ShellControls.MAIN_MENU_GROUP, f));
+        getRegistry().registerMenu(ShellControls.MAIN_MENU_GROUP, f);
     }
 
     private void registerFileGroup() {
-        ControlFactory<ShellFxView<?>, ManagedMenuGroup> f = (v) -> {
+        ControlFactory<ShellView<?>, ManagedMenuGroup> f = (v) -> {
             return new ManagedMenuGroup(ShellControls.FileMenu.GROUP, 0);
         };
-        addRegistration(getRegistry().registerMenuGroup(ShellControls.FileMenu.NAME, f));
+        getRegistry().registerMenuGroup(ShellControls.FileMenu.NAME, f);
     }
 
     private void registerExitItem() {
-        ControlFactory<ShellFxView<?>, ManagedMenuItem> f = (v) -> {
+        ControlFactory<ShellView<?>, ManagedMenuItem> f = (v) -> {
             var item = new ManagedMenuItem("E_xit", 1000);
-            var handler = new AbstractMenuItemHandler<ShellFxView<?>, ManagedMenuItem>(shell, item) {
+            var handler = new AbstractMenuItemHandler<ShellView<?>, ManagedMenuItem>(shell, item) {
                 @Override
                 public void onAction() {
-                    shell.getPresenter().getOnCloseRequest().run();
+                    shell.getViewModel().getOnCloseRequest().run();
                 }
             };
             MenuItemHandler.setHandler(item, handler);
             return item;
         };
-        addRegistration(getRegistry().registerMenuItem(ShellControls.FileMenu.GROUP, f));
+        getRegistry().registerMenuItem(ShellControls.FileMenu.GROUP, f);
     }
 
     private void registerBookmarkMenu() {
-        ControlFactory<ShellFxView<?>, ManagedMenu> f = (v) -> {
+        ControlFactory<ShellView<?>, ManagedMenu> f = (v) -> {
             var menu = new ManagedMenu(ShellControls.BookmarkMenu.NAME, "_Bookmarks", 100);
             return menu;
         };
-        addRegistration(getRegistry().registerMenu(ShellControls.MAIN_MENU_GROUP, f));
+        getRegistry().registerMenu(ShellControls.MAIN_MENU_GROUP, f);
     }
 
     private void registerBookmarkGroups() {
-        ControlFactory<ShellFxView<?>, ManagedMenuGroup> f = (v) -> {
+        ControlFactory<ShellView<?>, ManagedMenuGroup> f = (v) -> {
             return new ManagedMenuGroup(ShellControls.BookmarkMenu.CEF_GROUP, 0);
         };
-        addRegistration(getRegistry().registerMenuGroup(ShellControls.BookmarkMenu.NAME, f));
+        getRegistry().registerMenuGroup(ShellControls.BookmarkMenu.NAME, f);
         f = (v) -> {
             return new ManagedMenuGroup(ShellControls.BookmarkMenu.POPULAR_GROUP, 1);
         };
-        addRegistration(getRegistry().registerMenuGroup(ShellControls.BookmarkMenu.NAME, f));
+        getRegistry().registerMenuGroup(ShellControls.BookmarkMenu.NAME, f);
     }
 
-    private void registerBookmarkItem(Bookmark bookmark, MenuGroupName<ShellFxView<?>> group, int pos) {
-        ControlFactory<ShellFxView<?>, ManagedMenuItem> f = (v) -> {
+    private void registerBookmarkItem(Bookmark bookmark, MenuGroupName<ShellView<?>> group, int pos) {
+        ControlFactory<ShellView<?>, ManagedMenuItem> f = (v) -> {
             var item = new ManagedMenuItem(bookmark.title, pos);
-            var handler = new AbstractMenuItemHandler<ShellFxView<?>, ManagedMenuItem>(shell, item) {
+            var handler = new AbstractMenuItemHandler<ShellView<?>, ManagedMenuItem>(shell, item) {
                 @Override
                 public void onAction() {
                     tabOpener.open(bookmark.url);
@@ -126,6 +124,10 @@ public class ModuleControlRegistrar extends AbstractControlRegistrar {
             MenuItemHandler.setHandler(item, handler);
             return item;
         };
-        addRegistration(getRegistry().registerMenuItem(group, f));
+        getRegistry().registerMenuItem(group, f);
+    }
+
+    private ControlRegistry getRegistry() {
+        return this.shell.getControlRegistry();
     }
 }

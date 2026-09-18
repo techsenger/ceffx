@@ -7,7 +7,6 @@
 package com.techsenger.ceffx.demo.tab;
 
 import com.techsenger.ceffx.core.browser.CefBrowserBase;
-import com.techsenger.shellfx.core.ShellContext;
 import com.techsenger.shellfx.core.tab.TabParams;
 
 /**
@@ -16,17 +15,10 @@ import com.techsenger.shellfx.core.tab.TabParams;
  */
 public class BrowserTabParams extends TabParams {
 
-    private final ShellContext context;
-
     private final CefBrowserBase browser;
 
-    public BrowserTabParams(ShellContext context, CefBrowserBase browser) {
-        this.context = context;
+    public BrowserTabParams(CefBrowserBase browser) {
         this.browser = browser;
-    }
-
-    public ShellContext getContext() {
-        return context;
     }
 
     public CefBrowserBase getBrowser() {

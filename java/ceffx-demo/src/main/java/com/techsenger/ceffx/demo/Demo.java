@@ -25,36 +25,36 @@ import com.techsenger.ceffx.core.handler.CefPrintHandlerAdapter;
 import com.techsenger.ceffx.core.misc.CefPrintSettings;
 import com.techsenger.ceffx.core.network.CefRequest;
 import com.techsenger.ceffx.demo.controls.ModuleControlRegistrar;
-import com.techsenger.ceffx.demo.tab.BrowserTabFxView;
 import com.techsenger.ceffx.demo.tab.BrowserTabParams;
 import com.techsenger.ceffx.demo.tab.BrowserTabPort;
-import com.techsenger.ceffx.demo.tab.BrowserTabPresenter;
+import com.techsenger.ceffx.demo.tab.BrowserTabView;
+import com.techsenger.ceffx.demo.tab.BrowserTabViewModel;
 import com.techsenger.ceffx.demo.tab.ChangeSource;
 import com.techsenger.ceffx.natives.NativeDeployer;
 import com.techsenger.ceffx.natives.NativeProps;
 import com.techsenger.shellfx.core.DefaultShellContext;
-import com.techsenger.shellfx.core.DefaultShellFxView;
 import com.techsenger.shellfx.core.DefaultShellParams;
-import com.techsenger.shellfx.core.DefaultShellPresenter;
-import com.techsenger.shellfx.core.ShellFxView;
-import com.techsenger.shellfx.core.area.AreaParams;
+import com.techsenger.shellfx.core.DefaultShellView;
+import com.techsenger.shellfx.core.DefaultShellViewModel;
+import com.techsenger.shellfx.core.ShellView;
 import com.techsenger.shellfx.core.dialog.DialogParams;
 import com.techsenger.shellfx.core.history.InMemoryHistoryManager;
 import com.techsenger.shellfx.core.registry.ControlRegistry;
 import com.techsenger.shellfx.core.settings.ShellSettings;
-import com.techsenger.shellfx.core.tab.TabContainerFxView;
+import com.techsenger.shellfx.core.tab.TabContainerView;
 import com.techsenger.shellfx.core.window.WindowType;
 import com.techsenger.shellfx.dialogs.alert.AlertDialogButtons;
-import com.techsenger.shellfx.dialogs.alert.AlertDialogFxView;
 import com.techsenger.shellfx.dialogs.alert.AlertDialogParams;
-import com.techsenger.shellfx.dialogs.alert.AlertDialogPresenter;
 import com.techsenger.shellfx.dialogs.alert.AlertDialogType;
-import com.techsenger.shellfx.dialogs.progress.ProgressDialogFxView;
-import com.techsenger.shellfx.dialogs.progress.ProgressDialogPresenter;
+import com.techsenger.shellfx.dialogs.alert.AlertDialogView;
+import com.techsenger.shellfx.dialogs.alert.AlertDialogViewModel;
+import com.techsenger.shellfx.dialogs.progress.ProgressDialogView;
+import com.techsenger.shellfx.dialogs.progress.ProgressDialogViewModel;
 import com.techsenger.shellfx.icons.Fonts;
 import com.techsenger.shellfx.icons.IconStylesheetFactory;
-import com.techsenger.shellfx.layout.tabhost.TabHostFxView;
-import com.techsenger.shellfx.layout.tabhost.TabHostPresenter;
+import com.techsenger.shellfx.layout.tabhost.ProminentTabHostParams;
+import com.techsenger.shellfx.layout.tabhost.ProminentTabHostView;
+import com.techsenger.shellfx.layout.tabhost.ProminentTabHostViewModel;
 import com.techsenger.shellfx.material.icon.FontIconView;
 import com.techsenger.shellfx.material.icon.PlainFontIcon;
 import com.techsenger.shellfx.material.style.Density;
@@ -94,8 +94,8 @@ import org.slf4j.LoggerFactory;
  * <p><b>If there are open tabs:</b>
  * <ol>
  *     <li>A window close is triggered.</li>
- *     <li>{@code shellPresenter.getOnCloseRequest()} is invoked.</li>
- *     <li>{@code shellPresenter.closeSafely()} is called.</li>
+ *     <li>{@code shellViewModel.getOnCloseRequest()} is invoked.</li>
+ *     <li>{@code shellViewModel.closeSafely()} is called.</li>
  *     <li>All tabs are deinitialized.</li>
  *     <li>Each tab performs {@code postDeinitialize()}, which calls {@code browser.close(boolean)}.</li>
  *     <li>{@code CefLifeSpanHandler.onBeforeClose()} is invoked.</li>
@@ -105,9 +105,9 @@ import org.slf4j.LoggerFactory;
  * <p><b>If there are no open tabs:</b>
  * <ol>
  *     <li>A window close is triggered.</li>
- *     <li>{@code shellPresenter.getOnCloseRequest()} is invoked.</li>
- *     <li>{@code shellPresenter.closeSafely()} is called.</li>
- *     <li>{@code shellPresenter.getOnClosed()} is invoked.</li>
+ *     <li>{@code shellViewModel.getOnCloseRequest()} is invoked.</li>
+ *     <li>{@code shellViewModel.closeSafely()} is called.</li>
+ *     <li>{@code shellViewModel.getOnClosed()} is invoked.</li>
  *     <li>{@code CefApp.dispose()} is invoked.</li>
  * </ol>
  *
@@ -160,7 +160,7 @@ public class Demo extends Application {
      * <p>CEF client handler callbacks (e.g. {@code onLoadStart}, {@code onAddressChange},
      * {@code onCursorChange}) can fire on the CEF thread as soon as the browser is created, but
      * {@code TAB_COMPONENT} is only set later, from the JavaFX Application Thread via
-     * {@link Platform#runLater}, once the tab's UI presenter has been constructed. This creates a window
+     * {@link Platform#runLater}, once the tab's UI view model has been constructed. This creates a window
      * where a handler may run before the property has been set. Callers must check the result for
      * {@code null} rather than assuming it is always populated by the time a handler fires.
      *
@@ -174,9 +174,9 @@ public class Demo extends Application {
 
     private final AtomicInteger browserCount = new AtomicInteger();
 
-    private ShellFxView<?> shell;
+    private ShellView<?> shell;
 
-    private TabContainerFxView<?> workspace;
+    private TabContainerView<?> workspace;
 
     private CefClient client;
 
@@ -198,30 +198,34 @@ public class Demo extends Application {
 
         var stylesheets = List.of(new Stylesheet(Demo.class.getResource("demo.css")));
         var controlRegistry = new ControlRegistry();
-        var shellView = new DefaultShellFxView<>(this, stage, stylesheets, ShellControls.MAIN_MENU_GROUP,
-                controlRegistry);
-        this.shell = shellView;
         var settings = createShellSettings();
         var context = new DefaultShellContext(settings, new InMemoryHistoryManager(), getHostServices());
         var shellParams = new DefaultShellParams(context);
-        var shellPresenter = new DefaultShellPresenter<>(shellView, shellParams);
-        shellPresenter.initialize();
+        var shellViewModel = new DefaultShellViewModel<>(shellParams);
+        var shellView = new DefaultShellView<>(shellViewModel, this, stage, stylesheets, ShellControls.MAIN_MENU_GROUP,
+                controlRegistry);
+        this.shell = shellView;
+        shellView.initialize();
         shellView.getStage().getScene().getRoot().getStyleClass().add(StyleClasses.DENSITY_S);
-        shellPresenter.setTitle("CEFFX Demo");
-        shellPresenter.setOnCloseRequest(() -> {
+        shellViewModel.setTitle("CEFFX Demo");
+        shellViewModel.setOnCloseRequest(() -> {
             if (workspace.getComposer().getTabs().isEmpty()) {
-                shellPresenter.setOnClosed(() -> {
+                shellViewModel.setOnClosed(() -> {
                     CefApp.runLater(() -> CefApp.getInstance().dispose());
                 });
             } else {
                 exiting = true;
             }
-            shellPresenter.closeSafely();
+            shellViewModel.closeSafely();
         });
     }
 
     private void createWorkspace() {
-        var workspaceView = new TabHostFxView<>(true);
+        var context = shell.getViewModel().getContext();
+        var params = new ProminentTabHostParams(context.getSettings().getAppearance());
+        var viewModel = new ProminentTabHostViewModel<>(params);
+        var workspaceView = new ProminentTabHostView<>(viewModel);
+        workspaceView.initialize();
         this.workspace = workspaceView;
         TabPanePro tabPane = workspaceView.getNode();
         tabPane.setTabMaxWidth(220);
@@ -233,8 +237,6 @@ public class Demo extends Application {
         newTabButton.getStyleClass().add(Styles.FLAT);
         newTabButton.setOnAction((e) -> onNewTab(null));
         stickyArea.getChildren().add(newTabButton);
-        var workspacePresenter = new TabHostPresenter<>(workspaceView, new AreaParams());
-        workspacePresenter.initialize();
         shell.getComposer().addWorkspace(workspaceView);
     }
 
@@ -250,21 +252,21 @@ public class Demo extends Application {
             if (completedOperations.size() < NativeDeployer.Operation.values().length) {
                 var pendingOperations = EnumSet.allOf(NativeDeployer.Operation.class);
                 pendingOperations.removeAll(completedOperations);
-                var dialogView = new AlertDialogFxView<>();
                 var dialogParams = new AlertDialogParams(WindowType.TOP_LEVEL,
-                        shell.getPresenter().getContext().getSettings().getAppearance(),
+                        shell.getViewModel().getContext().getSettings().getAppearance(),
                         AlertDialogType.CONFIRMATION);
-                var dialogPresenter = new AlertDialogPresenter<>(dialogView, dialogParams);
-                dialogPresenter.initialize();
-                dialogPresenter.setMessage("Natives are not ready. Would you like to deploy them now?");
-                dialogView.getStage().initOwner(shell.getStage());
-                dialogView.getStage().show();
-                dialogPresenter.setOnResult((button) -> {
-                    dialogPresenter.closeSafely();
+                var dialogViewModel = new AlertDialogViewModel<>(dialogParams);
+                var dialogView = new AlertDialogView<>(dialogViewModel);
+                dialogView.initialize();
+                dialogViewModel.setMessage("Natives are not ready. Would you like to deploy them now?");
+                dialogViewModel.setOnResult((button) -> {
+                    dialogViewModel.closeSafely();
                     if (button == AlertDialogButtons.YES) {
                         deployNatives(nativesPath, pendingOperations);
                     }
                 });
+                dialogView.getStage().initOwner(shell.getStage());
+                dialogView.getStage().show();
             } else {
                 initCef(nativesPath);
             }
@@ -275,13 +277,13 @@ public class Demo extends Application {
 
     private void deployNatives(Path nativesPath, Set<NativeDeployer.Operation> pendingOperations) {
         try {
-            var dialogView = new ProgressDialogFxView();
             var dialogParams = new DialogParams(WindowType.TOP_LEVEL,
-                    shell.getPresenter().getContext().getSettings().getAppearance());
-            var dialogPresenter = new ProgressDialogPresenter(dialogView, dialogParams);
-            dialogPresenter.initialize();
-            dialogPresenter.setTitle("Deploying Natives");
-            dialogPresenter.setProgress(0);
+                    shell.getViewModel().getContext().getSettings().getAppearance());
+            var dialogViewModel = new ProgressDialogViewModel<>(dialogParams);
+            var dialogView = new ProgressDialogView<>(dialogViewModel);
+            dialogView.initialize();
+            dialogViewModel.setTitle("Deploying Natives");
+            dialogViewModel.setProgress(0);
             dialogView.getStage().initOwner(shell.getStage());
             dialogView.getStage().show();
             Thread.startVirtualThread(() -> {
@@ -290,7 +292,7 @@ public class Demo extends Application {
                 try {
                     NativeDeployer.deploy(nativesPath, (op, progress) -> {
                         Platform.runLater(() -> {
-                            dialogPresenter.setMessage("Operation: " + op);
+                            dialogViewModel.setMessage("Operation: " + op);
                             var previousOp = lastOp.getAndSet(op);
                             if (previousOp != op) {
                                 if (previousOp != null) {
@@ -298,17 +300,17 @@ public class Demo extends Application {
                                 }
                             }
                             var totProgress = computeOverallProgress(pendingOperations, completedOps, op, progress);
-                            dialogPresenter.setProgress(totProgress);
+                            dialogViewModel.setProgress(totProgress);
                         });
                     });
                     Thread.sleep(700);
                     Platform.runLater(() -> {
-                        dialogPresenter.closeSafely();
+                        dialogViewModel.closeSafely();
                         initCef(nativesPath);
                     });
                 } catch (Exception ex) {
                     logger.error("Error deploying natives", ex);
-                    Platform.runLater(() -> dialogPresenter.closeSafely());
+                    Platform.runLater(() -> dialogViewModel.closeSafely());
                 }
             });
         } catch (Throwable t) {
@@ -452,11 +454,11 @@ public class Demo extends Application {
                 browser.setWindowlessFrameRate(60);
                 browserCount.incrementAndGet();
                 Platform.runLater(() -> {
-                    var tabView = new BrowserTabFxView(shell, browser.getPane());
-                    var tabParams = new BrowserTabParams(shell.getPresenter().getContext(), browser);
-                    var tabPresenter = new BrowserTabPresenter(tabView, tabParams);
-                    tabPresenter.initialize();
-                    browser.getProperties().put(TAB_COMPONENT, tabPresenter);
+                    var tabParams = new BrowserTabParams(browser);
+                    var tabViewModel = new BrowserTabViewModel<>(tabParams);
+                    var tabView = new BrowserTabView<>(tabViewModel, shell, browser.getPane());
+                    tabView.initialize();
+                    browser.getProperties().put(TAB_COMPONENT, tabViewModel);
                     workspace.getComposer().addTab(tabView);
                 });
             } catch (Throwable ex) {

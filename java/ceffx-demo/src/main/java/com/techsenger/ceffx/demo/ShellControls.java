@@ -6,7 +6,7 @@
 
 package com.techsenger.ceffx.demo;
 
-import com.techsenger.shellfx.core.ShellFxView;
+import com.techsenger.shellfx.core.ShellView;
 import com.techsenger.shellfx.material.menu.DefaultMenuGroupName;
 import com.techsenger.shellfx.material.menu.DefaultMenuName;
 import com.techsenger.shellfx.material.menu.MenuGroupName;
@@ -21,9 +21,9 @@ public final class ShellControls {
 
     public static final class FileMenu {
 
-        public static final MenuName<ShellFxView<?>> NAME = createName();
+        public static final MenuName<ShellView<?>> NAME = createName();
 
-        public static final MenuGroupName<ShellFxView<?>> GROUP = createGroupName("Group");
+        public static final MenuGroupName<ShellView<?>> GROUP = createGroupName("Group");
 
         private FileMenu() {
             // empty
@@ -32,11 +32,11 @@ public final class ShellControls {
 
     public static final class BookmarkMenu {
 
-        public static final MenuName<ShellFxView<?>> NAME = createName();
+        public static final MenuName<ShellView<?>> NAME = createName();
 
-        public static final MenuGroupName<ShellFxView<?>> CEF_GROUP = createGroupName("Cef Group");
+        public static final MenuGroupName<ShellView<?>> CEF_GROUP = createGroupName("Cef Group");
 
-        public static final MenuGroupName<ShellFxView<?>> POPULAR_GROUP = createGroupName("Popular Group");
+        public static final MenuGroupName<ShellView<?>> POPULAR_GROUP = createGroupName("Popular Group");
 
         private BookmarkMenu() {
             // empty
@@ -44,17 +44,17 @@ public final class ShellControls {
     }
 
     /**
-     * The group File/Bookmark menus register into, and that {@link com.techsenger.shellfx.core.DefaultShellFxView}
+     * The group File/Bookmark menus register into, and that {@link com.techsenger.shellfx.core.DefaultShellView}
      * treats as the top-level group of its own menu bar.
      */
-    public static final MenuGroupName<ShellFxView<?>> MAIN_MENU_GROUP = createGroupName("MainMenuGroup");
+    public static final MenuGroupName<ShellView<?>> MAIN_MENU_GROUP = createGroupName("MainMenuGroup");
 
-    private static MenuName<ShellFxView<?>> createName() {
-        return new DefaultMenuName<>(ShellFxView.class);
+    private static MenuName<ShellView<?>> createName() {
+        return new DefaultMenuName<>(ShellView.class);
     }
 
-    private static MenuGroupName<ShellFxView<?>> createGroupName(String text) {
-        return new DefaultMenuGroupName<>(ShellFxView.class, text);
+    private static MenuGroupName<ShellView<?>> createGroupName(String text) {
+        return new DefaultMenuGroupName<>(ShellView.class, text);
     }
 
     private ShellControls() {

@@ -86,7 +86,11 @@
         </dependency>
         <dependency>
             <groupId>com.techsenger.patternfx</groupId>
-            <artifactId>patternfx-mvp</artifactId>
+            <artifactId>patternfx-mvvm</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.techsenger.connectorfx</groupId>
+            <artifactId>connectorfx</artifactId>
         </dependency>
         <dependency>
             <groupId>com.techsenger.shellfx</groupId>

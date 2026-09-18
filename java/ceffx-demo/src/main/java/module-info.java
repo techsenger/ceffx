@@ -14,7 +14,8 @@ module com.techsenger.ceffx.demo {
     requires com.twelvemonkeys.imageio.bmp;
     requires com.techsenger.toolkit.fx;
     requires com.techsenger.patternfx.core;
-    requires com.techsenger.patternfx.mvp;
+    requires com.techsenger.patternfx.mvvm;
+    requires com.techsenger.connectorfx;
     requires com.techsenger.tabpanepro.core;
     requires com.techsenger.shellfx.core;
     requires com.techsenger.shellfx.icons;

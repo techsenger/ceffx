@@ -10,11 +10,13 @@ import com.techsenger.ceffx.core.CefApp;
 import com.techsenger.ceffx.core.browser.CefBrowserBase;
 import com.techsenger.shellfx.core.CloseCheckResult;
 import com.techsenger.shellfx.core.ClosePreparationResult;
-import com.techsenger.shellfx.core.ShellContext;
 import com.techsenger.shellfx.core.UiExecutor;
-import com.techsenger.shellfx.core.tab.AbstractTabPresenter;
+import com.techsenger.shellfx.core.tab.AbstractTabViewModel;
+import com.techsenger.shellfx.core.tab.TabComposer;
 import com.techsenger.shellfx.material.icon.PlainFontIcon;
 import com.techsenger.shellfx.material.icon.PlainImageIcon;
+import com.techsenger.toolkit.fx.value.ObservableSource;
+import com.techsenger.toolkit.fx.value.SimpleObservableSource;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -26,6 +28,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.scene.Cursor;
 import javafx.scene.image.Image;
 import org.slf4j.Logger;
@@ -35,13 +39,13 @@ import org.slf4j.LoggerFactory;
  *
  * @author Pavel Castornii
  */
-public class BrowserTabPresenter extends AbstractTabPresenter<BrowserTabView> implements BrowserTabPort {
+public class BrowserTabViewModel<C extends TabComposer> extends AbstractTabViewModel<C> implements BrowserTabPort {
 
     private enum FavIconType {
         ICO, PNG
     }
 
-    private static final Logger logger = LoggerFactory.getLogger(BrowserTabPresenter.class);
+    private static final Logger logger = LoggerFactory.getLogger(BrowserTabViewModel.class);
 
     private static String stripQuery(String url) {
         int q = url.indexOf('?');
@@ -76,7 +80,7 @@ public class BrowserTabPresenter extends AbstractTabPresenter<BrowserTabView> im
 
     private static String loadHtmlAsDataUrl(String fileName) throws IOException {
         String html;
-        try (InputStream is = BrowserTabPresenter.class.getResourceAsStream(fileName)) {
+        try (InputStream is = BrowserTabViewModel.class.getResourceAsStream(fileName)) {
             html = new String(is.readAllBytes(), StandardCharsets.UTF_8);
         }
         String base64 = Base64.getEncoder().encodeToString(html.getBytes(StandardCharsets.UTF_8));
@@ -84,9 +88,13 @@ public class BrowserTabPresenter extends AbstractTabPresenter<BrowserTabView> im
         return url;
     }
 
-    private final ShellContext shellContext;
-
     private final CefBrowserBase browser;
+
+    private final ObjectProperty<Cursor> cursor = new SimpleObjectProperty<>();
+
+    private final ObservableSource<Void> takeFocusSource = new SimpleObservableSource<>();
+
+    private final ObservableSource<String> addressSource = new SimpleObservableSource<>();
 
     private String address;
 
@@ -94,11 +102,8 @@ public class BrowserTabPresenter extends AbstractTabPresenter<BrowserTabView> im
 
     private volatile boolean darkTheme = true;
 
-    private Cursor cursor;
-
-    public BrowserTabPresenter(BrowserTabView view, BrowserTabParams params) {
-        super(view, params);
-        this.shellContext = params.getContext();
+    public BrowserTabViewModel(BrowserTabParams params) {
+        super(params);
         this.browser = params.getBrowser();
     }
 
@@ -162,6 +167,10 @@ public class BrowserTabPresenter extends AbstractTabPresenter<BrowserTabView> im
     }
 
     public Cursor getCursor() {
+        return this.cursor.get();
+    }
+
+    public ObjectProperty<Cursor> cursorProperty() {
         return this.cursor;
     }
 
@@ -175,17 +184,8 @@ public class BrowserTabPresenter extends AbstractTabPresenter<BrowserTabView> im
     }
 
     @Override
-    public void onSelected(boolean selected) {
-        super.onSelected(selected);
-        CefApp.runLater(() -> {
-            browser.setRenderingEnabled(selected);
-            browser.setFocus(selected);
-        });
-    }
-
-    @Override
     public void onTakeFocusFromBrowser() {
-        getView().transferFocusFromBrowser();
+        takeFocusSource.next(null);
     }
 
     protected void onAddressSubmitted() {
@@ -196,14 +196,6 @@ public class BrowserTabPresenter extends AbstractTabPresenter<BrowserTabView> im
             setAddress(address);
             CefApp.runLater(() -> this.browser.loadURL(address));
         }
-    }
-
-    protected void openDevTools() {
-        getView().getComposer().addDevTools(this.shellContext.getSettings(), this.shellContext.getHistoryManager());
-    }
-
-    protected void closeDevTools() {
-        getView().getComposer().removeDevTools();
     }
 
     protected void onBrowserDevTools() {
@@ -252,6 +244,10 @@ public class BrowserTabPresenter extends AbstractTabPresenter<BrowserTabView> im
         super.postInitialize();
         setTitle("New Tab");
         setIcon(new PlainFontIcon(984479));
+        selectedProperty().addListener((ov, oldV, newV) -> CefApp.runLater(() -> {
+            browser.setRenderingEnabled(newV);
+            browser.setFocus(newV);
+        }));
     }
 
     @Override
@@ -265,15 +261,19 @@ public class BrowserTabPresenter extends AbstractTabPresenter<BrowserTabView> im
             return;
         }
         this.address = url;
-        getView().updateAddress(url);
+        addressSource.next(url);
     }
 
-    protected void setCursor(Cursor cursor) {
-        if (Objects.equals(this.cursor, cursor)) {
-            return;
-        }
-        this.cursor = cursor;
-        getView().updateCursor(cursor);
+    ObservableSource<String> addressSource() {
+        return addressSource;
+    }
+
+    ObservableSource<Void> takeFocusSource() {
+        return takeFocusSource;
+    }
+
+    private void setCursor(Cursor cursor) {
+        this.cursor.set(cursor);
     }
 
     private void loadFavicon(FavIconType iconType, String iconUrl) {
