@@ -70,7 +70,7 @@ public class BrowserTabView<VM extends BrowserTabViewModel<?>> extends AbstractT
         public void removeDevTools() {
             getModifiableChildren().remove(devTools);
             getContentBox().getChildren().set(0, content);
-            devTools.getViewModel().requestDeinitializeTree();
+            devTools.deinitializeTree();
             this.devTools = null;
         }
     }
