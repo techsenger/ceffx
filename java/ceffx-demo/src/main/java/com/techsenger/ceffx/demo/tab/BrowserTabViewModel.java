@@ -8,9 +8,9 @@ package com.techsenger.ceffx.demo.tab;
 
 import com.techsenger.ceffx.core.CefApp;
 import com.techsenger.ceffx.core.browser.CefBrowserBase;
-import com.techsenger.shellfx.core.CloseCheckResult;
-import com.techsenger.shellfx.core.ClosePreparationResult;
 import com.techsenger.shellfx.core.UiExecutor;
+import com.techsenger.shellfx.core.close.CloseCheckResult;
+import com.techsenger.shellfx.core.close.ClosePreparationResult;
 import com.techsenger.shellfx.core.tab.AbstractTabViewModel;
 import com.techsenger.shellfx.core.tab.TabComposer;
 import com.techsenger.shellfx.material.icon.PlainFontIcon;
