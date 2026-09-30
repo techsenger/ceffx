@@ -12,6 +12,7 @@ module com.techsenger.ceffx.demo {
     requires javafx.graphics;
     requires javafx.controls;
     requires com.twelvemonkeys.imageio.bmp;
+    requires com.techsenger.toolkit.core;
     requires com.techsenger.toolkit.fx;
     requires com.techsenger.patternfx.core;
     requires com.techsenger.patternfx.mvvm;

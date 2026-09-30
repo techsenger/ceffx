@@ -18,6 +18,7 @@ public class BrowserTabParams extends TabParams {
     private final CefBrowserBase browser;
 
     public BrowserTabParams(CefBrowserBase browser) {
+        super(null);
         this.browser = browser;
     }
 

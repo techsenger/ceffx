@@ -36,18 +36,21 @@ import com.techsenger.shellfx.core.DefaultShellContext;
 import com.techsenger.shellfx.core.DefaultShellParams;
 import com.techsenger.shellfx.core.DefaultShellView;
 import com.techsenger.shellfx.core.DefaultShellViewModel;
+import com.techsenger.shellfx.core.ShellConfig;
 import com.techsenger.shellfx.core.ShellView;
-import com.techsenger.shellfx.core.dialog.DialogParams;
-import com.techsenger.shellfx.core.history.InMemoryHistoryManager;
+import com.techsenger.shellfx.core.config.InMemoryConfigManager;
 import com.techsenger.shellfx.core.registry.ControlRegistry;
 import com.techsenger.shellfx.core.settings.ShellSettings;
 import com.techsenger.shellfx.core.tab.TabContainerView;
 import com.techsenger.shellfx.core.window.WindowType;
 import com.techsenger.shellfx.dialogs.alert.AlertDialogButtons;
+import com.techsenger.shellfx.dialogs.alert.AlertDialogConfig;
 import com.techsenger.shellfx.dialogs.alert.AlertDialogParams;
 import com.techsenger.shellfx.dialogs.alert.AlertDialogType;
 import com.techsenger.shellfx.dialogs.alert.AlertDialogView;
 import com.techsenger.shellfx.dialogs.alert.AlertDialogViewModel;
+import com.techsenger.shellfx.dialogs.progress.ProgressDialogConfig;
+import com.techsenger.shellfx.dialogs.progress.ProgressDialogParams;
 import com.techsenger.shellfx.dialogs.progress.ProgressDialogView;
 import com.techsenger.shellfx.dialogs.progress.ProgressDialogViewModel;
 import com.techsenger.shellfx.icons.Fonts;
@@ -199,8 +202,8 @@ public class Demo extends Application {
         var stylesheets = List.of(new Stylesheet(Demo.class.getResource("demo.css")));
         var controlRegistry = new ControlRegistry();
         var settings = createShellSettings();
-        var context = new DefaultShellContext(settings, new InMemoryHistoryManager(), getHostServices());
-        var shellParams = new DefaultShellParams(context);
+        var context = new DefaultShellContext(settings, new InMemoryConfigManager(), getHostServices());
+        var shellParams = new DefaultShellParams(new ShellConfig(), context);
         var shellViewModel = new DefaultShellViewModel<>(shellParams);
         var shellView = new DefaultShellView<>(shellViewModel, this, stage, stylesheets, ShellControls.MAIN_MENU_GROUP,
                 controlRegistry);
@@ -222,7 +225,7 @@ public class Demo extends Application {
 
     private void createWorkspace() {
         var context = shell.getViewModel().getContext();
-        var params = new ProminentTabHostParams(context.getSettings().getAppearance());
+        var params = new ProminentTabHostParams(null, context.getSettings().getAppearance());
         var viewModel = new ProminentTabHostViewModel<>(params);
         var workspaceView = new ProminentTabHostView<>(viewModel);
         workspaceView.initialize();
@@ -252,7 +255,7 @@ public class Demo extends Application {
             if (completedOperations.size() < NativeDeployer.Operation.values().length) {
                 var pendingOperations = EnumSet.allOf(NativeDeployer.Operation.class);
                 pendingOperations.removeAll(completedOperations);
-                var dialogParams = new AlertDialogParams(WindowType.TOP_LEVEL,
+                var dialogParams = new AlertDialogParams(new AlertDialogConfig(), WindowType.TOP_LEVEL,
                         shell.getViewModel().getContext().getSettings().getAppearance(),
                         AlertDialogType.CONFIRMATION);
                 var dialogViewModel = new AlertDialogViewModel<>(dialogParams);
@@ -277,7 +280,7 @@ public class Demo extends Application {
 
     private void deployNatives(Path nativesPath, Set<NativeDeployer.Operation> pendingOperations) {
         try {
-            var dialogParams = new DialogParams(WindowType.TOP_LEVEL,
+            var dialogParams = new ProgressDialogParams(new ProgressDialogConfig(), WindowType.TOP_LEVEL,
                     shell.getViewModel().getContext().getSettings().getAppearance());
             var dialogViewModel = new ProgressDialogViewModel<>(dialogParams);
             var dialogView = new ProgressDialogView<>(dialogViewModel);

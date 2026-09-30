@@ -10,6 +10,7 @@ import com.techsenger.connectorfx.LocalConnector;
 import com.techsenger.shellfx.core.ShellView;
 import com.techsenger.shellfx.core.tab.AbstractTabView;
 import com.techsenger.shellfx.devtools.DevToolsHostType;
+import com.techsenger.shellfx.devtools.DevToolsTabDockConfig;
 import com.techsenger.shellfx.devtools.DevToolsTabDockParams;
 import com.techsenger.shellfx.devtools.DevToolsTabDockView;
 import com.techsenger.shellfx.devtools.DevToolsTabDockViewModel;
@@ -48,8 +49,10 @@ public class BrowserTabView<VM extends BrowserTabViewModel<?>> extends AbstractT
             }
             var context = getShell().getViewModel().getContext();
             var connector = new LocalConnector(getShell().getStage(), null);
-            var devToolsParams = new DevToolsTabDockParams(DevToolsHostType.OTHER, context.getSettings(),
-                    context.getHistoryManager(), connector, getShell().getStage().hashCode());
+            var devToolsConfig = context.getConfigManager().getOrCreateConfig(DevToolsTabDockConfig.class,
+                    DevToolsTabDockConfig::new);
+            var devToolsParams = new DevToolsTabDockParams(devToolsConfig, DevToolsHostType.OTHER,
+                    context.getSettings(), connector, getShell().getStage().hashCode());
             var devToolsViewModel = new DevToolsTabDockViewModel<>(devToolsParams);
             devTools = new DevToolsTabDockView<>(devToolsViewModel, getShell(), getShell()) {
 
