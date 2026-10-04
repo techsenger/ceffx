@@ -24,7 +24,6 @@ import com.techsenger.ceffx.core.handler.CefLoadHandlerAdapter;
 import com.techsenger.ceffx.core.handler.CefPrintHandlerAdapter;
 import com.techsenger.ceffx.core.misc.CefPrintSettings;
 import com.techsenger.ceffx.core.network.CefRequest;
-import com.techsenger.ceffx.demo.controls.ModuleControlRegistrar;
 import com.techsenger.ceffx.demo.tab.BrowserTabParams;
 import com.techsenger.ceffx.demo.tab.BrowserTabPort;
 import com.techsenger.ceffx.demo.tab.BrowserTabView;
@@ -40,6 +39,7 @@ import com.techsenger.shellfx.core.ShellConfig;
 import com.techsenger.shellfx.core.ShellView;
 import com.techsenger.shellfx.core.config.InMemoryConfigManager;
 import com.techsenger.shellfx.core.registry.ControlRegistry;
+import com.techsenger.shellfx.core.registry.SlotRegistry;
 import com.techsenger.shellfx.core.settings.ShellSettings;
 import com.techsenger.shellfx.core.tab.TabContainerView;
 import com.techsenger.shellfx.core.window.WindowType;
@@ -200,13 +200,12 @@ public class Demo extends Application {
         IconStylesheets.addAll(IconStylesheetFactory.forAll());
 
         var stylesheets = List.of(new Stylesheet(Demo.class.getResource("demo.css")));
-        var controlRegistry = new ControlRegistry();
         var settings = createShellSettings();
-        var context = new DefaultShellContext(settings, new InMemoryConfigManager(), getHostServices());
+        var context = new DefaultShellContext(settings, new InMemoryConfigManager(), getHostServices(),
+                new SlotRegistry(), new ControlRegistry());
         var shellParams = new DefaultShellParams(new ShellConfig(), context);
         var shellViewModel = new DefaultShellViewModel<>(shellParams);
-        var shellView = new DefaultShellView<>(shellViewModel, this, stage, stylesheets, ShellControls.MAIN_MENU_GROUP,
-                controlRegistry);
+        var shellView = new DefaultShellView<>(shellViewModel, stage, stylesheets, Slots.MAIN_MENU, context);
         this.shell = shellView;
         shellView.initialize();
         shellView.getStage().getScene().getRoot().getStyleClass().add(StyleClasses.DENSITY_S);
@@ -244,8 +243,8 @@ public class Demo extends Application {
     }
 
     private void createMainMenu() {
-        var registrar = new ModuleControlRegistrar(shell, this::onNewTab);
-        registrar.register();
+        new ModuleSlotRegistrar(shell).register();
+        new ModuleControlRegistrar(shell, this::onNewTab).register();
         shell.upgradeMenuBar();
     }
 
