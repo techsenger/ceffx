@@ -8,6 +8,7 @@ package com.techsenger.ceffx.demo;
 
 import com.techsenger.shellfx.core.ShellView;
 import com.techsenger.shellfx.core.registry.AbstractControlRegistrar;
+import com.techsenger.shellfx.material.ControlGroup;
 import com.techsenger.shellfx.material.menu.AbstractMenuItemHandler;
 import com.techsenger.shellfx.material.menu.MenuItemHandler;
 import com.techsenger.shellfx.material.slot.GroupSlot;
@@ -67,6 +68,7 @@ public class ModuleControlRegistrar extends AbstractControlRegistrar {
 
     private void registerFileMenu() {
         register(Slots.FileMenu.MENU, v -> new Menu("_File"));
+        register(Slots.FileMenu.GROUP, v -> new ControlGroup<>());
     }
 
     private void registerExitItem() {
@@ -84,6 +86,8 @@ public class ModuleControlRegistrar extends AbstractControlRegistrar {
 
     private void registerBookmarkMenu() {
         register(Slots.BookmarkMenu.MENU, v -> new Menu("_Bookmarks"));
+        register(Slots.BookmarkMenu.CEF_GROUP, v -> new ControlGroup<>());
+        register(Slots.BookmarkMenu.POPULAR_GROUP, v -> new ControlGroup<>());
     }
 
     private void registerBookmarkItem(Bookmark bookmark, GroupSlot<ShellView<?>, MenuItem> group, int pos) {
