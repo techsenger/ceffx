@@ -8,9 +8,8 @@ package com.techsenger.ceffx.demo;
 
 import com.techsenger.shellfx.core.ShellView;
 import com.techsenger.shellfx.core.registry.AbstractControlRegistrar;
-import com.techsenger.shellfx.material.ControlGroup;
-import com.techsenger.shellfx.material.menu.AbstractMenuItemHandler;
-import com.techsenger.shellfx.material.menu.MenuItemHandler;
+import com.techsenger.shellfx.core.registry.SimpleControlProvider;
+import com.techsenger.shellfx.core.registry.SimpleGroupProvider;
 import com.techsenger.shellfx.material.slot.GroupSlot;
 import java.util.List;
 import java.util.stream.IntStream;
@@ -63,43 +62,37 @@ public class ModuleControlRegistrar extends AbstractControlRegistrar {
     }
 
     private void registerMainMenu() {
-        register(Slots.MAIN_MENU, v -> new MenuBar());
+        register(Slots.MAIN_MENU, () -> new SimpleControlProvider<>(new MenuBar()));
     }
 
     private void registerFileMenu() {
-        register(Slots.FileMenu.MENU, v -> new Menu("_File"));
-        register(Slots.FileMenu.GROUP, v -> new ControlGroup<>());
+        register(Slots.FileMenu.MENU, () -> new SimpleControlProvider<>(new Menu("_File")));
+        register(Slots.FileMenu.GROUP, () -> new SimpleGroupProvider<>());
     }
 
     private void registerExitItem() {
-        register(Slots.FileMenu.GROUP, 1000, v -> {
-            var item = new MenuItem("E_xit");
-            MenuItemHandler.setHandler(item, new AbstractMenuItemHandler<ShellView<?>, MenuItem>(shell, item) {
-                @Override
-                public void onAction() {
-                    shell.getViewModel().getOnCloseRequest().run();
-                }
-            });
-            return item;
+        register(Slots.FileMenu.GROUP, 1000, () -> new SimpleControlProvider<>(new MenuItem("E_xit")) {
+            @Override
+            public void initialize(ShellView<?> view) {
+                super.initialize(view);
+                getControl().setOnAction(e -> shell.getViewModel().getOnCloseRequest().run());
+            }
         });
     }
 
     private void registerBookmarkMenu() {
-        register(Slots.BookmarkMenu.MENU, v -> new Menu("_Bookmarks"));
-        register(Slots.BookmarkMenu.CEF_GROUP, v -> new ControlGroup<>());
-        register(Slots.BookmarkMenu.POPULAR_GROUP, v -> new ControlGroup<>());
+        register(Slots.BookmarkMenu.MENU, () -> new SimpleControlProvider<>(new Menu("_Bookmarks")));
+        register(Slots.BookmarkMenu.CEF_GROUP, () -> new SimpleGroupProvider<>());
+        register(Slots.BookmarkMenu.POPULAR_GROUP, () -> new SimpleGroupProvider<>());
     }
 
     private void registerBookmarkItem(Bookmark bookmark, GroupSlot<ShellView<?>, MenuItem> group, int pos) {
-        register(group, pos, v -> {
-            var item = new MenuItem(bookmark.title);
-            MenuItemHandler.setHandler(item, new AbstractMenuItemHandler<ShellView<?>, MenuItem>(shell, item) {
-                @Override
-                public void onAction() {
-                    tabOpener.open(bookmark.url);
-                }
-            });
-            return item;
+        register(group, pos, () -> new SimpleControlProvider<>(new MenuItem(bookmark.title)) {
+            @Override
+            public void initialize(ShellView<?> view) {
+                super.initialize(view);
+                getControl().setOnAction(e -> tabOpener.open(bookmark.url));
+            }
         });
     }
 }
