@@ -196,10 +196,10 @@ public class Demo extends Application {
     }
 
     private void createShell(Stage stage) {
-        FontIconView.setDefaultIconFont(Fonts.MATERIAL_DESIGN_ICONS.getFamily());
+        FontIconView.setDefaultIconFamily(Fonts.MATERIAL_DESIGN_ICONS.getFamily());
         IconStylesheets.addAll(IconStylesheetFactory.forAll());
 
-        var stylesheets = List.of(new Stylesheet(Demo.class.getResource("demo.css")));
+        var stylesheets = List.of(new Stylesheet(Demo.class.getResource("demo.css").toExternalForm()));
         var settings = createShellSettings();
         var context = new DefaultShellContext(settings, new InMemoryConfigManager(), getHostServices(),
                 new SlotRegistry(), new ControlRegistry());
