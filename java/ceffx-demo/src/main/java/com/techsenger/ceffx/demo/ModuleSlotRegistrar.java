@@ -7,7 +7,7 @@
 package com.techsenger.ceffx.demo;
 
 import com.techsenger.shellfx.core.ShellView;
-import com.techsenger.shellfx.core.registry.AbstractSlotRegistrar;
+import com.techsenger.shellfx.core.registries.AbstractSlotRegistrar;
 
 /**
  * Builds the tree of the slots of the demo shell: which menus the menu bar has, and which groups each menu has.
