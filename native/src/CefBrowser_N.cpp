@@ -1036,37 +1036,66 @@ int GetCefModifiers(JNIEnv* env, jclass cls, int modifiers) {
   return cef_modifiers;
 }
 
-int GetCefModifiersFromJavaFXMouse(JNIEnv* env, jobject event) {
+int GetCefModifiersFromJavaFXInput(JNIEnv* env, jobject event) {
   int cef_modifiers = 0;
 
   jclass eventClass = env->GetObjectClass(event);
   if (!eventClass)
     return 0;
 
-  jmethodID isPrimaryDownMethod = env->GetMethodID(eventClass, "isPrimaryButtonDown", "()Z");
-  jmethodID isSecondaryDownMethod = env->GetMethodID(eventClass, "isSecondaryButtonDown", "()Z");
-  jmethodID isMiddleDownMethod = env->GetMethodID(eventClass, "isMiddleButtonDown", "()Z");
+  jmethodID isCtrlDownMethod =
+      env->GetMethodID(eventClass, "isControlDown", "()Z");
+  jmethodID isShiftDownMethod =
+      env->GetMethodID(eventClass, "isShiftDown", "()Z");
+  jmethodID isAltDownMethod =
+      env->GetMethodID(eventClass, "isAltDown", "()Z");
+  jmethodID isMetaDownMethod =
+      env->GetMethodID(eventClass, "isMetaDown", "()Z");
 
-  jmethodID isCtrlDownMethod = env->GetMethodID(eventClass, "isControlDown", "()Z");
-  jmethodID isShiftDownMethod = env->GetMethodID(eventClass, "isShiftDown", "()Z");
-  jmethodID isAltDownMethod = env->GetMethodID(eventClass, "isAltDown", "()Z");
-  jmethodID isMetaDownMethod = env->GetMethodID(eventClass, "isMetaDown", "()Z");
-
-  if (isPrimaryDownMethod && env->CallBooleanMethod(event, isPrimaryDownMethod))
-    cef_modifiers |= EVENTFLAG_LEFT_MOUSE_BUTTON;
-  if (isSecondaryDownMethod && env->CallBooleanMethod(event, isSecondaryDownMethod))
-    cef_modifiers |= EVENTFLAG_RIGHT_MOUSE_BUTTON;
-  if (isMiddleDownMethod && env->CallBooleanMethod(event, isMiddleDownMethod))
-    cef_modifiers |= EVENTFLAG_MIDDLE_MOUSE_BUTTON;
-
-  if (isCtrlDownMethod && env->CallBooleanMethod(event, isCtrlDownMethod))
+  if (isCtrlDownMethod &&
+      env->CallBooleanMethod(event, isCtrlDownMethod))
     cef_modifiers |= EVENTFLAG_CONTROL_DOWN;
-  if (isShiftDownMethod && env->CallBooleanMethod(event, isShiftDownMethod))
+
+  if (isShiftDownMethod &&
+      env->CallBooleanMethod(event, isShiftDownMethod))
     cef_modifiers |= EVENTFLAG_SHIFT_DOWN;
-  if (isAltDownMethod && env->CallBooleanMethod(event, isAltDownMethod))
+
+  if (isAltDownMethod &&
+      env->CallBooleanMethod(event, isAltDownMethod))
     cef_modifiers |= EVENTFLAG_ALT_DOWN;
-  if (isMetaDownMethod && env->CallBooleanMethod(event, isMetaDownMethod))
+
+  if (isMetaDownMethod &&
+      env->CallBooleanMethod(event, isMetaDownMethod))
     cef_modifiers |= EVENTFLAG_COMMAND_DOWN;
+
+  return cef_modifiers;
+}
+
+int GetCefModifiersFromJavaFXMouse(JNIEnv* env, jobject event) {
+  int cef_modifiers = GetCefModifiersFromJavaFXInput(env, event);
+
+  jclass eventClass = env->GetObjectClass(event);
+  if (!eventClass)
+    return cef_modifiers;
+
+  jmethodID isPrimaryDownMethod =
+      env->GetMethodID(eventClass, "isPrimaryButtonDown", "()Z");
+  jmethodID isSecondaryDownMethod =
+      env->GetMethodID(eventClass, "isSecondaryButtonDown", "()Z");
+  jmethodID isMiddleDownMethod =
+      env->GetMethodID(eventClass, "isMiddleButtonDown", "()Z");
+
+  if (isPrimaryDownMethod &&
+      env->CallBooleanMethod(event, isPrimaryDownMethod))
+    cef_modifiers |= EVENTFLAG_LEFT_MOUSE_BUTTON;
+
+  if (isSecondaryDownMethod &&
+      env->CallBooleanMethod(event, isSecondaryDownMethod))
+    cef_modifiers |= EVENTFLAG_RIGHT_MOUSE_BUTTON;
+
+  if (isMiddleDownMethod &&
+      env->CallBooleanMethod(event, isMiddleDownMethod))
+    cef_modifiers |= EVENTFLAG_MIDDLE_MOUSE_BUTTON;
 
   return cef_modifiers;
 }
@@ -2050,34 +2079,81 @@ Java_com_techsenger_ceffx_core_browser_CefBrowser_1N_N_1SendMouseEvent(JNIEnv* e
     return;
 
   jclass eventTypeClass = env->GetObjectClass(eventType);
-  jmethodID toStringMethod = env->GetMethodID(eventTypeClass, "toString", "()Ljava/lang/String;");
+
+  jmethodID toStringMethod = env->GetMethodID(
+      eventTypeClass,
+      "toString",
+      "()Ljava/lang/String;"
+  );
 
   if (toStringMethod) {
-    jstring eventTypeStr = (jstring)env->CallObjectMethod(eventType, toStringMethod);
-    const char* eventTypeStrC = env->GetStringUTFChars(eventTypeStr, NULL);
+    jstring eventTypeStr =
+        (jstring)env->CallObjectMethod(eventType, toStringMethod);
 
-    jmethodID isSecondaryDownMethod = env->GetMethodID(mouseEventClass, "isSecondaryButtonDown", "()Z");
-    jmethodID isMiddleDownMethod = env->GetMethodID(mouseEventClass, "isMiddleButtonDown", "()Z");
-
-    jboolean isSecondaryDown = isSecondaryDownMethod ? env->CallBooleanMethod(mouse_event, isSecondaryDownMethod) : JNI_FALSE;
-    jboolean isMiddleDown = isMiddleDownMethod ? env->CallBooleanMethod(mouse_event, isMiddleDownMethod) : JNI_FALSE;
+    const char* eventTypeStrC =
+        env->GetStringUTFChars(eventTypeStr, NULL);
 
     CefBrowserHost::MouseButtonType button = MBT_LEFT;
-    if (isSecondaryDown) {
-      button = MBT_RIGHT;
-    } else if (isMiddleDown) {
-      button = MBT_MIDDLE;
+
+    jmethodID getButtonMethod = env->GetMethodID(
+        mouseEventClass,
+        "getButton",
+        "()Ljavafx/scene/input/MouseButton;"
+    );
+
+    if (getButtonMethod) {
+      jobject mouseButton = env->CallObjectMethod(mouse_event, getButtonMethod);
+
+      if (mouseButton) {
+        jclass mouseButtonClass = env->GetObjectClass(mouseButton);
+        jmethodID mouseButtonToStringMethod =
+            env->GetMethodID(mouseButtonClass, "toString", "()Ljava/lang/String;");
+
+        if (mouseButtonToStringMethod) {
+          jstring mouseButtonStr =
+              (jstring)env->CallObjectMethod(mouseButton, mouseButtonToStringMethod);
+
+          if (mouseButtonStr) {
+            const char* mouseButtonStrC =
+                env->GetStringUTFChars(mouseButtonStr, NULL);
+
+            if (strcmp(mouseButtonStrC, "SECONDARY") == 0) {
+              button = MBT_RIGHT;
+            } else if (strcmp(mouseButtonStrC, "MIDDLE") == 0) {
+              button = MBT_MIDDLE;
+            }
+
+            env->ReleaseStringUTFChars(mouseButtonStr, mouseButtonStrC);
+          }
+        }
+      }
     }
 
     if (strstr(eventTypeStrC, "MOUSE_PRESSED")) {
-      browser->GetHost()->SendMouseClickEvent(cef_event, button, false, 1);
+      browser->GetHost()->SendMouseClickEvent(
+          cef_event,
+          button,
+          false,
+          1
+      );
     } else if (strstr(eventTypeStrC, "MOUSE_RELEASED")) {
-      browser->GetHost()->SendMouseClickEvent(cef_event, button, true, 1);
+      browser->GetHost()->SendMouseClickEvent(
+          cef_event,
+          button,
+          true,
+          1
+      );
     } else {
-      browser->GetHost()->SendMouseMoveEvent(cef_event, false);
+      browser->GetHost()->SendMouseMoveEvent(
+          cef_event,
+          false
+      );
     }
 
-    env->ReleaseStringUTFChars(eventTypeStr, eventTypeStrC);
+    env->ReleaseStringUTFChars(
+        eventTypeStr,
+        eventTypeStrC
+    );
   }
 }
 
@@ -2112,7 +2188,7 @@ Java_com_techsenger_ceffx_core_browser_CefBrowser_1N_N_1SendMouseWheelEvent(JNIE
   CefMouseEvent cef_event;
   cef_event.x = (int)x;
   cef_event.y = (int)y;
-  cef_event.modifiers = GetCefModifiersFromJavaFXMouse(env, scroll_event);
+  cef_event.modifiers = GetCefModifiersFromJavaFXInput(env, scroll_event);
 
   int wheel_delta_y = (int)(deltaY * 1.5);
   int wheel_delta_x = (int)(deltaX * 1.5);
