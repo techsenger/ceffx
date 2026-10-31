@@ -10,7 +10,7 @@
     <properties>
         <checkstyle.plugin.skip>true</checkstyle.plugin.skip>
         <maven.compiler.release>25</maven.compiler.release>
-        <javafx.version>26</javafx.version>
+        <javafx.version>27</javafx.version>
         <publishing.plugin.exclusions>ceffx-demo</publishing.plugin.exclusions>
     </properties>
 
