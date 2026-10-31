@@ -4,7 +4,7 @@
  * Licensed under the BSD 3-Clause License. See LICENSE file for details.
  */
 
-package com.techsenger.ceffx.demo;
+package com.techsenger.ceffx.demo.slots;
 
 import com.techsenger.shellfx.core.ShellView;
 import com.techsenger.shellfx.material.slot.GroupSlot;
@@ -17,7 +17,7 @@ import javafx.scene.control.MenuItem;
  *
  * @author Pavel Castornii
  */
-public final class Slots {
+public final class ShellSlots {
 
     public static final class FileMenu {
 
@@ -50,7 +50,7 @@ public final class Slots {
      */
     public static final MenuBarSlot<ShellView<?>> MAIN_MENU = new MenuBarSlot<>(ShellView.class, "MainMenu");
 
-    private Slots() {
+    private ShellSlots() {
         // empty
     }
 }

@@ -24,6 +24,9 @@ import com.techsenger.ceffx.core.handler.CefLoadHandlerAdapter;
 import com.techsenger.ceffx.core.handler.CefPrintHandlerAdapter;
 import com.techsenger.ceffx.core.misc.CefPrintSettings;
 import com.techsenger.ceffx.core.network.CefRequest;
+import com.techsenger.ceffx.demo.registrars.ModuleControlRegistrar;
+import com.techsenger.ceffx.demo.registrars.ModuleSlotRegistrar;
+import com.techsenger.ceffx.demo.slots.ShellSlots;
 import com.techsenger.ceffx.demo.tab.BrowserTabParams;
 import com.techsenger.ceffx.demo.tab.BrowserTabPort;
 import com.techsenger.ceffx.demo.tab.BrowserTabView;
@@ -205,7 +208,7 @@ public class Demo extends Application {
                 new SlotRegistry(), new ControlRegistry());
         var shellParams = new DefaultShellParams(new ShellConfig(), context);
         var shellViewModel = new DefaultShellViewModel<>(shellParams);
-        var shellView = new DefaultShellView<>(shellViewModel, stage, stylesheets, Slots.MAIN_MENU, context);
+        var shellView = new DefaultShellView<>(shellViewModel, stage, stylesheets, ShellSlots.MAIN_MENU, context);
         this.shell = shellView;
         shellView.initialize();
         shellView.getStage().getScene().getRoot().getStyleClass().add(StyleClasses.DENSITY_S);

@@ -4,10 +4,12 @@
  * Licensed under the BSD 3-Clause License. See LICENSE file for details.
  */
 
-package com.techsenger.ceffx.demo;
+package com.techsenger.ceffx.demo.registrars;
 
+import com.techsenger.ceffx.demo.TabOpener;
+import com.techsenger.ceffx.demo.slots.ShellSlots;
 import com.techsenger.shellfx.core.ShellView;
-import com.techsenger.shellfx.core.registries.AbstractControlRegistrar;
+import com.techsenger.shellfx.core.registrars.AbstractControlRegistrar;
 import com.techsenger.shellfx.core.registries.SimpleControlProvider;
 import com.techsenger.shellfx.core.registries.SimpleGroupProvider;
 import com.techsenger.shellfx.material.slot.GroupSlot;
@@ -55,23 +57,23 @@ public class ModuleControlRegistrar extends AbstractControlRegistrar {
         registerBookmarkMenu();
         IntStream
                 .range(0, cefBookmarks.size())
-                .forEach(i -> registerBookmarkItem(cefBookmarks.get(i), Slots.BookmarkMenu.CEF_GROUP, i));
+                .forEach(i -> registerBookmarkItem(cefBookmarks.get(i), ShellSlots.BookmarkMenu.CEF_GROUP, i));
         IntStream
                 .range(0, popularBookmarks.size())
-                .forEach(i -> registerBookmarkItem(popularBookmarks.get(i), Slots.BookmarkMenu.POPULAR_GROUP, i));
+                .forEach(i -> registerBookmarkItem(popularBookmarks.get(i), ShellSlots.BookmarkMenu.POPULAR_GROUP, i));
     }
 
     private void registerMainMenu() {
-        register(Slots.MAIN_MENU, () -> new SimpleControlProvider<>(new MenuBar()));
+        register(ShellSlots.MAIN_MENU, () -> new SimpleControlProvider<>(new MenuBar()));
     }
 
     private void registerFileMenu() {
-        register(Slots.FileMenu.MENU, () -> new SimpleControlProvider<>(new Menu("_File")));
-        register(Slots.FileMenu.GROUP, () -> new SimpleGroupProvider<>());
+        register(ShellSlots.FileMenu.MENU, () -> new SimpleControlProvider<>(new Menu("_File")));
+        register(ShellSlots.FileMenu.GROUP, () -> new SimpleGroupProvider<>());
     }
 
     private void registerExitItem() {
-        register(Slots.FileMenu.GROUP, 1000, () -> new SimpleControlProvider<>(new MenuItem("E_xit")) {
+        register(ShellSlots.FileMenu.GROUP, 1000, () -> new SimpleControlProvider<>(new MenuItem("E_xit")) {
             @Override
             public void initialize(ShellView<?> view) {
                 super.initialize(view);
@@ -81,9 +83,9 @@ public class ModuleControlRegistrar extends AbstractControlRegistrar {
     }
 
     private void registerBookmarkMenu() {
-        register(Slots.BookmarkMenu.MENU, () -> new SimpleControlProvider<>(new Menu("_Bookmarks")));
-        register(Slots.BookmarkMenu.CEF_GROUP, () -> new SimpleGroupProvider<>());
-        register(Slots.BookmarkMenu.POPULAR_GROUP, () -> new SimpleGroupProvider<>());
+        register(ShellSlots.BookmarkMenu.MENU, () -> new SimpleControlProvider<>(new Menu("_Bookmarks")));
+        register(ShellSlots.BookmarkMenu.CEF_GROUP, () -> new SimpleGroupProvider<>());
+        register(ShellSlots.BookmarkMenu.POPULAR_GROUP, () -> new SimpleGroupProvider<>());
     }
 
     private void registerBookmarkItem(Bookmark bookmark, GroupSlot<ShellView<?>, MenuItem> group, int pos) {
