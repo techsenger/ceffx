@@ -232,7 +232,7 @@ public class Demo extends Application {
 
     private void createWorkspace() {
         var context = shell.getViewModel().getContext();
-        var params = new ProminentTabHostParams(null, context.getSettings().getAppearance());
+        var params = new ProminentTabHostParams(null, context.getSettings());
         var viewModel = new ProminentTabHostViewModel<>(params);
         var workspaceView = new ProminentTabHostView<>(viewModel);
         workspaceView.initialize();
@@ -263,7 +263,7 @@ public class Demo extends Application {
                 var pendingOperations = EnumSet.allOf(NativeDeployer.Operation.class);
                 pendingOperations.removeAll(completedOperations);
                 var dialogParams = new AlertDialogParams(new AlertDialogConfig(), WindowType.TOP_LEVEL,
-                        shell.getViewModel().getContext().getSettings().getAppearance(),
+                        shell.getViewModel().getContext().getSettings(),
                         AlertDialogType.CONFIRMATION);
                 var dialogViewModel = new AlertDialogViewModel<>(dialogParams);
                 var dialogView = new AlertDialogView<>(dialogViewModel, shell.getContext().getStylesheetRegistry());
@@ -288,7 +288,7 @@ public class Demo extends Application {
     private void deployNatives(Path nativesPath, Set<NativeDeployer.Operation> pendingOperations) {
         try {
             var dialogParams = new ProgressDialogParams(new ProgressDialogConfig(), WindowType.TOP_LEVEL,
-                    shell.getViewModel().getContext().getSettings().getAppearance());
+                    shell.getViewModel().getContext().getSettings());
             var dialogViewModel = new ProgressDialogViewModel<>(dialogParams);
             var dialogView = new ProgressDialogView<>(dialogViewModel, shell.getContext().getStylesheetRegistry());
             dialogView.initialize();

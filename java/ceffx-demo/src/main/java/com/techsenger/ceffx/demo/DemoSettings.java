@@ -6,15 +6,15 @@
 
 package com.techsenger.ceffx.demo;
 
+import com.techsenger.shellfx.core.settings.AbstractShellSettings;
 import com.techsenger.shellfx.core.settings.AppearanceSettings;
 import com.techsenger.shellfx.core.settings.DefaultAppearanceSettings;
-import com.techsenger.shellfx.core.settings.ShellSettings;
 
 /**
  *
  * @author Pavel Castornii
  */
-public class DemoSettings implements ShellSettings {
+public class DemoSettings extends AbstractShellSettings {
 
     private final AppearanceSettings appearance = new DefaultAppearanceSettings();
 
