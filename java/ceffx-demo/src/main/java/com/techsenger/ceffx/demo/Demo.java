@@ -43,8 +43,10 @@ import com.techsenger.shellfx.core.ShellView;
 import com.techsenger.shellfx.core.config.InMemoryConfigManager;
 import com.techsenger.shellfx.core.registries.ControlRegistry;
 import com.techsenger.shellfx.core.registries.SlotRegistry;
+import com.techsenger.shellfx.core.registries.StylesheetRegistry;
 import com.techsenger.shellfx.core.settings.ShellSettings;
 import com.techsenger.shellfx.core.tab.TabContainerView;
+import com.techsenger.shellfx.core.window.AbstractWindowView;
 import com.techsenger.shellfx.core.window.WindowType;
 import com.techsenger.shellfx.dialogs.alert.AlertDialogButtons;
 import com.techsenger.shellfx.dialogs.alert.AlertDialogConfig;
@@ -64,7 +66,6 @@ import com.techsenger.shellfx.layout.tabhost.ProminentTabHostViewModel;
 import com.techsenger.shellfx.material.icon.FontIconView;
 import com.techsenger.shellfx.material.icon.PlainFontIcon;
 import com.techsenger.shellfx.material.style.Density;
-import com.techsenger.shellfx.material.style.IconStylesheets;
 import com.techsenger.shellfx.material.style.StyleClasses;
 import com.techsenger.shellfx.material.style.Stylesheet;
 import com.techsenger.shellfx.material.theme.AtlantaFxTheme;
@@ -75,7 +76,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.EnumSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -199,16 +199,21 @@ public class Demo extends Application {
     }
 
     private void createShell(Stage stage) {
-        FontIconView.setDefaultIconFamily(Fonts.MATERIAL_DESIGN_ICONS.getFamily());
-        IconStylesheets.addAll(IconStylesheetFactory.forAll());
+        // creating application stylesheets
+        var defaultIconFont = Fonts.MATERIAL_DESIGN_ICONS;
+        FontIconView.setDefaultIconFamily(defaultIconFont.getFamily());
+        var stylesheetRegistry = new StylesheetRegistry();
+        stylesheetRegistry.register(AbstractWindowView.createDefaultStylesheets());
+        stylesheetRegistry.register(IconStylesheetFactory.forDefaultFont(defaultIconFont));
+        stylesheetRegistry.register(IconStylesheetFactory.forAllModules());
+        stylesheetRegistry.register(new Stylesheet(Demo.class.getResource("demo.css").toExternalForm()));
 
-        var stylesheets = List.of(new Stylesheet(Demo.class.getResource("demo.css").toExternalForm()));
         var settings = createShellSettings();
         var context = new DefaultShellContext(settings, new InMemoryConfigManager(), getHostServices(),
-                new SlotRegistry(), new ControlRegistry());
+                new SlotRegistry(), new ControlRegistry(), stylesheetRegistry);
         var shellParams = new DefaultShellParams(new ShellConfig(), context);
         var shellViewModel = new DefaultShellViewModel<>(shellParams);
-        var shellView = new DefaultShellView<>(shellViewModel, stage, stylesheets, ShellSlots.MAIN_MENU, context);
+        var shellView = new DefaultShellView<>(shellViewModel, context, stage, ShellSlots.MAIN_MENU);
         this.shell = shellView;
         shellView.initialize();
         shellView.getStage().getScene().getRoot().getStyleClass().add(StyleClasses.DENSITY_S);
@@ -261,7 +266,7 @@ public class Demo extends Application {
                         shell.getViewModel().getContext().getSettings().getAppearance(),
                         AlertDialogType.CONFIRMATION);
                 var dialogViewModel = new AlertDialogViewModel<>(dialogParams);
-                var dialogView = new AlertDialogView<>(dialogViewModel);
+                var dialogView = new AlertDialogView<>(dialogViewModel, shell.getContext().getStylesheetRegistry());
                 dialogView.initialize();
                 dialogViewModel.setMessage("Natives are not ready. Would you like to deploy them now?");
                 dialogViewModel.setOnResult((button) -> {
@@ -285,7 +290,7 @@ public class Demo extends Application {
             var dialogParams = new ProgressDialogParams(new ProgressDialogConfig(), WindowType.TOP_LEVEL,
                     shell.getViewModel().getContext().getSettings().getAppearance());
             var dialogViewModel = new ProgressDialogViewModel<>(dialogParams);
-            var dialogView = new ProgressDialogView<>(dialogViewModel);
+            var dialogView = new ProgressDialogView<>(dialogViewModel, shell.getContext().getStylesheetRegistry());
             dialogView.initialize();
             dialogViewModel.setTitle("Deploying Natives");
             dialogViewModel.setProgress(0);
