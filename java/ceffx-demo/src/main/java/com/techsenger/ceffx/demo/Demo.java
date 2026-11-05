@@ -40,10 +40,8 @@ import com.techsenger.shellfx.core.DefaultShellView;
 import com.techsenger.shellfx.core.DefaultShellViewModel;
 import com.techsenger.shellfx.core.ShellConfig;
 import com.techsenger.shellfx.core.ShellView;
-import com.techsenger.shellfx.core.config.InMemoryConfigManager;
-import com.techsenger.shellfx.core.registries.ControlRegistry;
-import com.techsenger.shellfx.core.registries.SlotRegistry;
-import com.techsenger.shellfx.core.registries.StylesheetRegistry;
+import com.techsenger.shellfx.core.config.ConfigData;
+import com.techsenger.shellfx.core.config.DefaultConfigManager;
 import com.techsenger.shellfx.core.settings.ShellSettings;
 import com.techsenger.shellfx.core.tab.TabContainerView;
 import com.techsenger.shellfx.core.window.AbstractWindowView;
@@ -199,18 +197,18 @@ public class Demo extends Application {
     }
 
     private void createShell(Stage stage) {
+        var settings = createShellSettings();
+        var context = new DefaultShellContext(settings, new DefaultConfigManager(new ConfigData()), getHostServices());
+
         // creating application stylesheets
         var defaultIconFont = Fonts.MATERIAL_DESIGN_ICONS;
         FontIconView.setDefaultIconFamily(defaultIconFont.getFamily());
-        var stylesheetRegistry = new StylesheetRegistry();
+        var stylesheetRegistry = context.getStylesheetRegistry();
         stylesheetRegistry.register(AbstractWindowView.createDefaultStylesheets());
         stylesheetRegistry.register(IconStylesheetFactory.forDefaultFont(defaultIconFont));
         stylesheetRegistry.register(IconStylesheetFactory.forAllModules());
         stylesheetRegistry.register(new Stylesheet(Demo.class.getResource("demo.css").toExternalForm()));
 
-        var settings = createShellSettings();
-        var context = new DefaultShellContext(settings, new InMemoryConfigManager(), getHostServices(),
-                new SlotRegistry(), new ControlRegistry(), stylesheetRegistry);
         var shellParams = new DefaultShellParams(new ShellConfig(), context);
         var shellViewModel = new DefaultShellViewModel<>(shellParams);
         var shellView = new DefaultShellView<>(shellViewModel, context, stage, ShellSlots.MAIN_MENU);
