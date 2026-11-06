@@ -47,7 +47,7 @@ public class BrowserTabView<VM extends BrowserTabViewModel<?>> extends AbstractT
             if (devTools != null) {
                 return;
             }
-            var context = getShell().getViewModel().getContext();
+            var context = getShell().getContext();
             var connector = new LocalConnector(getShell().getStage(), null);
             var devToolsConfig = context.getConfigManager().getOrCreateConfig(DevToolsTabDockConfig.class,
                     DevToolsTabDockConfig::new);
