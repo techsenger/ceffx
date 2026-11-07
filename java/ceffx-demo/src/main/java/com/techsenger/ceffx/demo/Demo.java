@@ -39,6 +39,7 @@ import com.techsenger.shellfx.core.DefaultShellParams;
 import com.techsenger.shellfx.core.DefaultShellView;
 import com.techsenger.shellfx.core.DefaultShellViewModel;
 import com.techsenger.shellfx.core.ShellConfig;
+import com.techsenger.shellfx.core.ShellPort;
 import com.techsenger.shellfx.core.ShellView;
 import com.techsenger.shellfx.core.config.ConfigData;
 import com.techsenger.shellfx.core.config.DefaultConfigManager;
@@ -188,15 +189,15 @@ public class Demo extends Application {
 
     @Override
     public void start(Stage stage) throws Exception {
-        createShell(stage);
+        var shell = createShell(stage);
         createWorkspace();
         createMainMenu();
         var nativesPath = Paths.get(System.getProperty("ceffx.natives.path"));
         stage.setOnShown(e -> checkNatives(nativesPath));
-        stage.show();
+        shell.setVisible(true);
     }
 
-    private void createShell(Stage stage) {
+    private ShellPort createShell(Stage stage) {
         var settings = createShellSettings();
         var context = new DefaultShellContext(settings, new DefaultConfigManager(new ConfigData()), getHostServices());
 
@@ -226,6 +227,7 @@ public class Demo extends Application {
             }
             shellViewModel.closeSafely();
         });
+        return shellViewModel;
     }
 
     private void createWorkspace() {
@@ -274,7 +276,7 @@ public class Demo extends Application {
                     }
                 });
                 dialogView.getStage().initOwner(shell.getStage());
-                dialogView.getStage().show();
+                dialogViewModel.setVisible(true);
             } else {
                 initCef(nativesPath);
             }
@@ -293,7 +295,7 @@ public class Demo extends Application {
             dialogViewModel.setTitle("Deploying Natives");
             dialogViewModel.setProgress(0);
             dialogView.getStage().initOwner(shell.getStage());
-            dialogView.getStage().show();
+            dialogViewModel.setVisible(true);
             Thread.startVirtualThread(() -> {
                 var lastOp = new AtomicReference<NativeDeployer.Operation>();
                 var completedOps = EnumSet.noneOf(NativeDeployer.Operation.class);
