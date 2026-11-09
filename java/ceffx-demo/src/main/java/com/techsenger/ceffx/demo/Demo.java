@@ -48,7 +48,6 @@ import com.techsenger.shellfx.core.tab.TabContainerView;
 import com.techsenger.shellfx.core.window.AbstractWindowView;
 import com.techsenger.shellfx.core.window.WindowType;
 import com.techsenger.shellfx.dialogs.alert.AlertDialogButtons;
-import com.techsenger.shellfx.dialogs.alert.AlertDialogConfig;
 import com.techsenger.shellfx.dialogs.alert.AlertDialogParams;
 import com.techsenger.shellfx.dialogs.alert.AlertDialogType;
 import com.techsenger.shellfx.dialogs.alert.AlertDialogView;
@@ -262,8 +261,7 @@ public class Demo extends Application {
             if (completedOperations.size() < NativeDeployer.Operation.values().length) {
                 var pendingOperations = EnumSet.allOf(NativeDeployer.Operation.class);
                 pendingOperations.removeAll(completedOperations);
-                var dialogParams = new AlertDialogParams(new AlertDialogConfig(), WindowType.TOP_LEVEL,
-                        shell.getContext().getSettings(),
+                var dialogParams = new AlertDialogParams(WindowType.TOP_LEVEL, shell.getContext().getSettings(),
                         AlertDialogType.CONFIRMATION);
                 var dialogViewModel = new AlertDialogViewModel<>(dialogParams);
                 var dialogView = new AlertDialogView<>(dialogViewModel, shell.getContext().getStylesheetRegistry());
