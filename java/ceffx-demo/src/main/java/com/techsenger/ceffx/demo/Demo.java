@@ -41,6 +41,7 @@ import com.techsenger.shellfx.core.DefaultShellViewModel;
 import com.techsenger.shellfx.core.ShellConfig;
 import com.techsenger.shellfx.core.ShellPort;
 import com.techsenger.shellfx.core.ShellView;
+import com.techsenger.shellfx.core.area.AreaParams;
 import com.techsenger.shellfx.core.config.ConfigData;
 import com.techsenger.shellfx.core.config.DefaultConfigManager;
 import com.techsenger.shellfx.core.settings.ShellSettings;
@@ -58,14 +59,14 @@ import com.techsenger.shellfx.dialogs.progress.ProgressDialogView;
 import com.techsenger.shellfx.dialogs.progress.ProgressDialogViewModel;
 import com.techsenger.shellfx.icons.Fonts;
 import com.techsenger.shellfx.icons.IconStylesheetFactory;
-import com.techsenger.shellfx.layout.tabhost.ProminentTabHostParams;
-import com.techsenger.shellfx.layout.tabhost.ProminentTabHostView;
-import com.techsenger.shellfx.layout.tabhost.ProminentTabHostViewModel;
+import com.techsenger.shellfx.layout.tabhost.TabHostView;
+import com.techsenger.shellfx.layout.tabhost.TabHostViewModel;
 import com.techsenger.shellfx.material.icon.FontIconView;
 import com.techsenger.shellfx.material.icon.PlainFontIcon;
 import com.techsenger.shellfx.material.style.Density;
 import com.techsenger.shellfx.material.style.StyleClasses;
 import com.techsenger.shellfx.material.style.Stylesheet;
+import com.techsenger.shellfx.material.tabpane.SlantedTabPanePro;
 import com.techsenger.shellfx.material.theme.AtlantaFxTheme;
 import com.techsenger.tabpanepro.core.TabPanePro;
 import com.techsenger.tabpanepro.core.skin.TabPaneProSkin;
@@ -153,7 +154,7 @@ public class Demo extends Application {
         appearance.setRegularFont(Font.font("System", 14));
         appearance.setMonospaceFont(Font.font("Monospace", 14));
         appearance.setTheme(AtlantaFxTheme.CUPERTINO_DARK);
-        appearance.setDensity(Density.M);
+        appearance.setDensity(Density.S);
         return settings;
     }
 
@@ -231,10 +232,11 @@ public class Demo extends Application {
 
     private void createWorkspace() {
         var context = shell.getContext();
-        var params = new ProminentTabHostParams(null, context.getSettings());
-        var viewModel = new ProminentTabHostViewModel<>(params);
-        var workspaceView = new ProminentTabHostView<>(viewModel);
+        var params = new AreaParams(null);
+        var viewModel = new TabHostViewModel<>(params);
+        var workspaceView = new TabHostView<>(viewModel, SlantedTabPanePro::new);
         workspaceView.initialize();
+        workspaceView.getNode().getStyleClass().add(StyleClasses.SIZE_L);
         this.workspace = workspaceView;
         TabPanePro tabPane = workspaceView.getNode();
         tabPane.setTabMaxWidth(220);
@@ -243,7 +245,7 @@ public class Demo extends Application {
         StackPane stickyArea = tabHeaderArea.getStickyArea();
         stickyArea.setPadding(new Insets(2, 0, 0, 0));
         var newTabButton = new Button(null, new FontIconView(new PlainFontIcon(0xF0415)));
-        newTabButton.getStyleClass().add(Styles.FLAT);
+        newTabButton.getStyleClass().addAll(Styles.FLAT, StyleClasses.SQUARE);
         newTabButton.setOnAction((e) -> onNewTab(null));
         stickyArea.getChildren().add(newTabButton);
         shell.getComposer().addWorkspace(workspaceView);

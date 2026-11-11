@@ -116,10 +116,10 @@ public class BrowserTabView<VM extends BrowserTabViewModel<?>> extends AbstractT
     @Override
     protected void build() {
         super.build();
-        toolBar.getStyleClass().addAll(StyleClasses.PROMINENT, StyleClasses.BLEND);
-        forwardButton.getStyleClass().addAll(StyleClasses.SIZE_L);
-        backButton.getStyleClass().addAll(StyleClasses.SIZE_L);
-        devToolsButton.getStyleClass().addAll(StyleClasses.SIZE_L);
+        toolBar.getStyleClass().addAll(StyleClasses.SIZE_L, StyleClasses.BLEND);
+        forwardButton.getStyleClass().addAll(StyleClasses.SIZE_L, StyleClasses.SQUARE);
+        backButton.getStyleClass().addAll(StyleClasses.SIZE_L, StyleClasses.SQUARE);
+        devToolsButton.getStyleClass().addAll(StyleClasses.SIZE_L, StyleClasses.SQUARE);
         VBox.setVgrow(browserPane, Priority.ALWAYS);
         HBox.setHgrow(addressTextField, Priority.ALWAYS);
         content.getChildren().add(browserPane);
