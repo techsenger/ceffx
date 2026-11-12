@@ -46,7 +46,7 @@ import com.techsenger.shellfx.core.config.ConfigData;
 import com.techsenger.shellfx.core.config.DefaultConfigManager;
 import com.techsenger.shellfx.core.settings.ShellSettings;
 import com.techsenger.shellfx.core.tab.TabContainerView;
-import com.techsenger.shellfx.core.window.AbstractFrameWindowView;
+import com.techsenger.shellfx.core.window.AbstractWindowView;
 import com.techsenger.shellfx.core.window.WindowType;
 import com.techsenger.shellfx.dialogs.alert.AlertDialogButtons;
 import com.techsenger.shellfx.dialogs.alert.AlertDialogParams;
@@ -205,7 +205,7 @@ public class Demo extends Application {
         var defaultIconFont = Fonts.MATERIAL_DESIGN_ICONS;
         FontIconView.setDefaultIconFamily(defaultIconFont.getFamily());
         var stylesheetRegistry = context.getStylesheetRegistry();
-        stylesheetRegistry.register(AbstractFrameWindowView.createDefaultStylesheets());
+        stylesheetRegistry.register(AbstractWindowView.createDefaultStylesheets());
         stylesheetRegistry.register(IconStylesheetFactory.forDefaultFont(defaultIconFont));
         stylesheetRegistry.register(IconStylesheetFactory.forAllModules());
         stylesheetRegistry.register(new Stylesheet(Demo.class.getResource("demo.css").toExternalForm()));
@@ -215,7 +215,7 @@ public class Demo extends Application {
         var shellView = new DefaultShellView<>(shellViewModel, context, stage, ShellSlots.MAIN_MENU);
         this.shell = shellView;
         shellView.initialize();
-        shellView.getStage().getScene().getRoot().getStyleClass().add(StyleClasses.DENSITY_S);
+        shellView.getWindow().getScene().getRoot().getStyleClass().add(StyleClasses.DENSITY_S);
         shellViewModel.setTitle("CEFFX Demo");
         shellViewModel.setOnCloseRequest(() -> {
             if (workspace.getComposer().getTabs().isEmpty()) {
@@ -275,7 +275,7 @@ public class Demo extends Application {
                         deployNatives(nativesPath, pendingOperations);
                     }
                 });
-                dialogView.getStage().initOwner(shell.getStage());
+                dialogView.getWindow().initOwner(shell.getWindow());
                 dialogViewModel.setVisible(true);
             } else {
                 initCef(nativesPath);
@@ -294,7 +294,7 @@ public class Demo extends Application {
             dialogView.initialize();
             dialogViewModel.setTitle("Deploying Natives");
             dialogViewModel.setProgress(0);
-            dialogView.getStage().initOwner(shell.getStage());
+            dialogView.getWindow().initOwner(shell.getWindow());
             dialogViewModel.setVisible(true);
             Thread.startVirtualThread(() -> {
                 var lastOp = new AtomicReference<NativeDeployer.Operation>();

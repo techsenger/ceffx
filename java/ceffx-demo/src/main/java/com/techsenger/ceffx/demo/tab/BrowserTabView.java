@@ -48,11 +48,11 @@ public class BrowserTabView<VM extends BrowserTabViewModel<?>> extends AbstractT
                 return;
             }
             var context = getShell().getContext();
-            var connector = new LocalConnector(getShell().getStage(), null);
+            var connector = new LocalConnector(getShell().getWindow(), null);
             var devToolsConfig = context.getConfigManager().getOrCreateConfig(DevToolsTabDockConfig.class,
                     DevToolsTabDockConfig::new);
             var devToolsParams = new DevToolsTabDockParams(devToolsConfig, DevToolsHostType.OTHER,
-                    context.getSettings(), connector, getShell().getStage().hashCode());
+                    context.getSettings(), connector, getShell().getWindow().hashCode());
             var devToolsViewModel = new DevToolsTabDockViewModel<>(devToolsParams);
             devTools = new DevToolsTabDockView<>(devToolsViewModel, getShell(), getShell()) {
 
